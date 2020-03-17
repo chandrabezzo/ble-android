@@ -1,4 +1,4 @@
-package com.dhealth.personalasssesment.util
+package com.dhealth.bluetooth.util
 
 import android.Manifest
 import android.app.Activity
@@ -8,7 +8,7 @@ import android.os.Build
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.dhealth.personalasssesment.R
+import com.dhealth.bluetooth.R
 
 object PermissionUtil {
     const val MY_PERMISSIONS_FINE_LOCATION = 129

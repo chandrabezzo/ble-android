@@ -1,11 +1,11 @@
-package com.dhealth.personalasssesment
+package com.dhealth.bluetooth
 
 import android.app.Application
 import android.content.Context
 import androidx.multidex.MultiDex
 import com.bezzo.core.CoreModul
 import com.bezzo.core.data.session.SessionHelper
-import com.dhealth.personalasssesment.di.allModule
+import com.dhealth.bluetooth.di.allModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 

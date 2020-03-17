@@ -1,8 +1,8 @@
-package com.dhealth.personalasssesment.di
+package com.dhealth.bluetooth.di
 
 import com.bezzo.core.data.session.SessionHelper
-import com.dhealth.personalasssesment.adapter.BluetoothDeviceRVAdapter
-import com.dhealth.personalasssesment.adapter.ScanResultRVAdapter
+import com.dhealth.bluetooth.adapter.BluetoothDeviceRVAdapter
+import com.dhealth.bluetooth.adapter.ScanResultRVAdapter
 import org.koin.dsl.module
 
 val appModule = module {

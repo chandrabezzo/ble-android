@@ -1,4 +1,4 @@
-package com.dhealth.personalasssesment.data.model
+package com.dhealth.bluetooth.data.model
 
 data class Device(
     val name: String,

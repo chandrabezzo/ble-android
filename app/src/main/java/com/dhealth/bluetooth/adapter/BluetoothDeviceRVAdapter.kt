@@ -1,4 +1,4 @@
-package com.dhealth.personalasssesment.adapter
+package com.dhealth.bluetooth.adapter
 
 import android.bluetooth.BluetoothDevice
 import android.view.LayoutInflater
@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bezzo.core.base.BaseHolder
 import com.bezzo.core.listener.OnItemClickListener
-import com.dhealth.personalasssesment.R
+import com.dhealth.bluetooth.R
 import kotlinx.android.synthetic.main.item_rv_device.view.*
 
 class BluetoothDeviceRVAdapter(private val list: MutableList<BluetoothDevice>)

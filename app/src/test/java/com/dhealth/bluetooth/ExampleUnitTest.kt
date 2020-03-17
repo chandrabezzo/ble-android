@@ -1,4 +1,4 @@
-package com.dhealth.personalasssesment
+package com.dhealth.bluetooth
 
 import org.junit.Test
 
