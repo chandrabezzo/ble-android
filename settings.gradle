@@ -1,0 +1,6 @@
+rootProject.name='Personal Asssesment'
+include ':app'
+
+//This is example for include core directory from mvvm-core
+include ':core'
+project(':core').projectDir = new File('..\\MVVM-Core\\core')
