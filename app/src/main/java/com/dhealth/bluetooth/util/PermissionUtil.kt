@@ -11,24 +11,24 @@ import androidx.core.content.ContextCompat
 import com.dhealth.bluetooth.R
 
 object PermissionUtil {
-    const val MY_PERMISSIONS_FINE_LOCATION = 129
-    const val MY_PERMISSIONS_COARSE_LOCATION = 129
+    private const val MY_PERMISSIONS_FINE_LOCATION = 129
+    private const val MY_PERMISSIONS_COARSE_LOCATION = 129
 
     fun requestFineLocationPermission(context: Context): Boolean {
         val currentAPIVersion = Build.VERSION.SDK_INT
         val permission = Manifest.permission.ACCESS_FINE_LOCATION
         if (currentAPIVersion >= android.os.Build.VERSION_CODES.M) {
-            if (isNotGranted(context, permission)) {
+            return if (isNotGranted(context, permission)) {
                 if (ActivityCompat.shouldShowRequestPermissionRationale(context as Activity, permission)) {
                     showAlertDialog(context, context.getString(R.string.title_permission),
-                            String.format(context.getString(R.string.content_permission), "lokasi"),
-                            arrayOf(permission), MY_PERMISSIONS_FINE_LOCATION)
+                        String.format(context.getString(R.string.content_permission), "lokasi"),
+                        arrayOf(permission), MY_PERMISSIONS_FINE_LOCATION)
                 } else {
                     requestPermission(context, arrayOf(permission), MY_PERMISSIONS_FINE_LOCATION)
                 }
-                return false
+                false
             } else {
-                return true
+                true
             }
         } else {
             return true

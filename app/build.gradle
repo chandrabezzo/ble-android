@@ -39,6 +39,7 @@ dependencies {
 
     implementation "com.polidea.rxandroidble2:rxandroidble:1.11.0"
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+    implementation 'com.google.android.gms:play-services-location:17.0.0'
 
     // # Core
     implementation "androidx.core:core-ktx:$coreVersion"

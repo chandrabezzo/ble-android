@@ -1,8 +1,8 @@
 package com.dhealth.bluetooth.di
 
 import com.bezzo.core.data.session.SessionHelper
-import com.dhealth.bluetooth.adapter.BluetoothDeviceRVAdapter
-import com.dhealth.bluetooth.adapter.ScanResultRVAdapter
+import com.dhealth.bluetooth.adapter.BleDataRVAdapter
+import com.dhealth.bluetooth.adapter.BleDeviceRVAdapter
 import org.koin.dsl.module
 
 val appModule = module {
@@ -14,8 +14,8 @@ val viewModelModule = module {
 }
 
 val rvAdapterModule = module {
-    factory { BluetoothDeviceRVAdapter(ArrayList()) }
-    factory { ScanResultRVAdapter(ArrayList()) }
+    factory { BleDeviceRVAdapter(ArrayList()) }
+    factory { BleDataRVAdapter(ArrayList()) }
 }
 
 val allModule = listOf(

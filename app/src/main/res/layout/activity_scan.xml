@@ -16,6 +16,7 @@
         android:maxHeight="?android:attr/actionBarSize"
         android:fitsSystemWindows="true"
         android:background="@color/colorPrimary"
+        android:layout_alignParentTop="true"
         android:theme="@style/Base.ThemeOverlay.AppCompat.Dark.ActionBar"
         app:title="@string/app_name"/>
 
