@@ -19,10 +19,16 @@
         android:theme="@style/Base.ThemeOverlay.AppCompat.Dark.ActionBar"
         app:title="@string/app_name"/>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_device_data"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/sr_data"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/toolbar"
-        tools:listitem="@layout/item_rv_device_data"/>
+        android:layout_below="@id/toolbar">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_device_data"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:listitem="@layout/item_rv_device_data"/>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 </RelativeLayout>

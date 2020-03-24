@@ -154,34 +154,18 @@ class ScanActivity : BaseActivity() {
     }
 
     private fun selectDevice(){
-        if(Build.VERSION.SDK_INT >= 21){
-            bleDeviceAdapter.setOnItemClick(object : OnItemClickListener{
-                override fun onItemClick(itemView: View, position: Int) {
-                    selectedDevice = bleDeviceAdapter.getItem(position)
-                    selectedDevice.device.connectGatt(this@ScanActivity,
-                        true, gattCallback)
-                    connecting()
-                }
+        bleDeviceAdapter.setOnItemClick(object : OnItemClickListener{
+            override fun onItemClick(itemView: View, position: Int) {
+                selectedDevice = bleDeviceAdapter.getItem(position)
+                selectedDevice.device.connectGatt(this@ScanActivity,
+                    true, gattCallback)
+                connecting()
+            }
 
-                override fun onItemLongClick(itemView: View, position: Int): Boolean {
-                    return true
-                }
-            })
-        }
-        else {
-            bleDeviceAdapter.setOnItemClick(object : OnItemClickListener{
-                override fun onItemClick(itemView: View, position: Int) {
-                    selectedDevice = bleDeviceAdapter.getItem(position)
-                    selectedDevice.device.connectGatt(this@ScanActivity,
-                        true, gattCallback)
-                    connecting()
-                }
-
-                override fun onItemLongClick(itemView: View, position: Int): Boolean {
-                    return true
-                }
-            })
-        }
+            override fun onItemLongClick(itemView: View, position: Int): Boolean {
+                return true
+            }
+        })
     }
 
     private val gattCallback = object: BluetoothGattCallback(){

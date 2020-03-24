@@ -1,18 +1,15 @@
 package com.dhealth.bluetooth.ui
 
 import android.bluetooth.*
-import android.bluetooth.le.ScanResult
-import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bezzo.core.base.BaseActivity
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.adapter.BleDataRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
+import com.dhealth.bluetooth.data.constant.Maxim
 import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.util.BleUtil
-import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_main.*
 import org.koin.android.ext.android.inject
 
@@ -29,11 +26,11 @@ class MainActivity : BaseActivity() {
         rv_device_data.layoutManager = layoutManager
         rv_device_data.adapter = adapter
 
+        toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
+
         bleDevice?.device?.connectGatt(this, true, gattCallback)?.let {
             bluetoothGatt = it
         }
-
-        toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
 
         adapter.addData("## DEVICE ##")
         adapter.addData("UUID: ${bleDevice?.device?.uuids.toString()}")
@@ -50,6 +47,11 @@ class MainActivity : BaseActivity() {
         adapter.addData("Fetch UUID With SDP: ${bleDevice?.device?.fetchUuidsWithSdp()}")
 
         adapter.notifyDataSetChanged()
+
+        sr_data.setOnRefreshListener {
+            val characteristic = bluetoothGatt.getService(Maxim.service).getCharacteristic(Maxim.dataCharacteristic)
+            bluetoothGatt.readCharacteristic(characteristic)
+        }
     }
 
     override fun setLayout(): Int {
@@ -65,27 +67,27 @@ class MainActivity : BaseActivity() {
     private val gattCallback = object : BluetoothGattCallback(){
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             if(newState == BluetoothProfile.STATE_CONNECTED){
-                gatt?.discoverServices()
+                bluetoothGatt.discoverServices()
             }
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            gatt?.services?.let { displayGattServices(gatt, it) }
+            bluetoothGatt.services?.let { displayGattServices(it) }
         }
 
         override fun onCharacteristicChanged(
-            gatt: BluetoothGatt?,
-            characteristic: BluetoothGattCharacteristic?
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic
         ) {
-            Log.i("## Mulai ##", "On Characteristic Changed")
+            displayDescriptor(characteristic.descriptors)
         }
 
         override fun onCharacteristicRead(
-            gatt: BluetoothGatt?,
-            characteristic: BluetoothGattCharacteristic?,
+            gatt: BluetoothGatt,
+            characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
-            super.onCharacteristicRead(gatt, characteristic, status)
+            displayDescriptor(characteristic.descriptors)
         }
 
         override fun onCharacteristicWrite(
@@ -93,7 +95,8 @@ class MainActivity : BaseActivity() {
             characteristic: BluetoothGattCharacteristic?,
             status: Int
         ) {
-            super.onCharacteristicWrite(gatt, characteristic, status)
+            val characteristic = bluetoothGatt.getService(Maxim.service).getCharacteristic(Maxim.dataCharacteristic)
+            bluetoothGatt.readCharacteristic(characteristic)
         }
 
         override fun onDescriptorRead(
@@ -105,15 +108,37 @@ class MainActivity : BaseActivity() {
         }
 
         override fun onDescriptorWrite(
-            gatt: BluetoothGatt?,
-            descriptor: BluetoothGattDescriptor?,
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
             status: Int
         ) {
-            super.onDescriptorWrite(gatt, descriptor, status)
+            val characteristic = bluetoothGatt.getService(Maxim.service).getCharacteristic(Maxim.rawDataCharacteristic)
+            characteristic.value = byteArrayOf(0, 170.toByte())
+            bluetoothGatt.writeCharacteristic(characteristic)
+        }
+
+        override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
+            super.onMtuChanged(gatt, mtu, status)
+        }
+
+        override fun onPhyRead(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
+            super.onPhyRead(gatt, txPhy, rxPhy, status)
+        }
+
+        override fun onPhyUpdate(gatt: BluetoothGatt?, txPhy: Int, rxPhy: Int, status: Int) {
+            super.onPhyUpdate(gatt, txPhy, rxPhy, status)
+        }
+
+        override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
+            super.onReadRemoteRssi(gatt, rssi, status)
+        }
+
+        override fun onReliableWriteCompleted(gatt: BluetoothGatt?, status: Int) {
+            super.onReliableWriteCompleted(gatt, status)
         }
     }
 
-    private fun displayGattServices(gatt: BluetoothGatt, gattServices: MutableList<BluetoothGattService>){
+    private fun displayGattServices(gattServices: MutableList<BluetoothGattService>){
         adapter.addData("## Gatt Service ##")
 
         for(service in gattServices){
@@ -125,43 +150,50 @@ class MainActivity : BaseActivity() {
         }
 
         for(service in gattServices){
-            displayGattCharacteristics(gatt, service.characteristics)
+            displayGattCharacteristics(service.characteristics)
         }
     }
 
-    private fun displayGattCharacteristics(gatt: BluetoothGatt, gattCharacteristics: MutableList<BluetoothGattCharacteristic>){
+    private fun displayGattCharacteristics(gattCharacteristics: MutableList<BluetoothGattCharacteristic>){
         adapter.addData("## Gatt Characteristic ##")
 
         for(characteristic in gattCharacteristics){
-            gatt.setCharacteristicNotification(characteristic, true)
+            if(characteristic.uuid == Maxim.dataCharacteristic){
+                adapter.addData("Characteristic Value: ${characteristic.value}")
+                adapter.addData("Instance ID: ${characteristic.instanceId}")
+                adapter.addData("Permission: ${BleUtil.characteristicPermission(characteristic.permissions)}")
+                adapter.addData("Properties: ${BleUtil.characteristicProperty(characteristic.properties)}")
+                adapter.addData("UUID: ${characteristic.uuid}")
+                adapter.addData("Value: ${characteristic.value?.contentToString()}")
 
-            adapter.addData("Characteristic Value: ${characteristic.value}")
-            adapter.addData("Instance ID: ${characteristic.instanceId}")
-            adapter.addData("Permission: ${BleUtil.characteristicPermission(characteristic.permissions)}")
-            adapter.addData("Properties: ${BleUtil.characteristicProperty(characteristic.properties)}")
-            adapter.addData("UUID: ${characteristic.uuid}")
-            adapter.addData("Value: ${characteristic.value?.contentToString()}")
+                runOnUiThread { adapter.notifyDataSetChanged() }
 
-            runOnUiThread { adapter.notifyDataSetChanged() }
-        }
-
-        for(characteristic in gattCharacteristics){
-            displayDescriptor(gatt, characteristic.descriptors)
+                bluetoothGatt.setCharacteristicNotification(characteristic, true)
+                displayDescriptor(characteristic.descriptors)
+            }
+            else {
+                bluetoothGatt.setCharacteristicNotification(characteristic, false)
+            }
         }
     }
 
-    private fun displayDescriptor(gatt: BluetoothGatt, gattDescriptors: MutableList<BluetoothGattDescriptor>){
+    private fun displayDescriptor(gattDescriptors: MutableList<BluetoothGattDescriptor>){
         adapter.addData("## Gatt Descriptor ##")
 
         for(descriptor in gattDescriptors){
-            descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-            gatt.writeDescriptor(descriptor)
+            if(descriptor.uuid == Maxim.descriptor){
+                adapter.addData("UUID: ${descriptor.uuid}")
+                adapter.addData("Permission: ${descriptor.permissions}")
+                adapter.addData("Value: ${descriptor.value?.contentToString()}")
 
-            adapter.addData("UUID: ${descriptor.uuid}")
-            adapter.addData("Permission: ${descriptor.permissions}")
-            adapter.addData("Value: ${descriptor.value?.contentToString()}")
+                runOnUiThread { adapter.notifyDataSetChanged() }
 
-            runOnUiThread { adapter.notifyDataSetChanged() }
+                descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                descriptor.value = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
+                bluetoothGatt.writeDescriptor(descriptor)
+            }
         }
+
+        sr_data.isRefreshing = false
     }
 }
