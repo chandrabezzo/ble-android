@@ -2,22 +2,42 @@ package com.dhealth.bluetooth.ui
 
 import android.bluetooth.*
 import android.os.Bundle
+import android.util.Log
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bezzo.core.base.BaseActivity
+import com.bezzo.core.extension.toast
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.adapter.BleDataRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.constant.Maxim
 import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.util.BleUtil
+import com.dhealth.bluetooth.util.Commands
+import com.jakewharton.rx.ReplayingShare
+import com.polidea.rxandroidble2.RxBleClient
+import io.reactivex.Observable
+import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.internal.observers.SubscriberCompletableObserver
+import io.reactivex.rxkotlin.Observables
+import io.reactivex.rxkotlin.Singles
+import io.reactivex.rxkotlin.toObservable
+import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import org.koin.android.ext.android.inject
+import org.reactivestreams.Subscriber
+import java.nio.charset.Charset
+import kotlin.text.Charsets.UTF_8
+
 
 class MainActivity : BaseActivity() {
 
     private var bleDevice: BleDevice? = null
     private lateinit var bluetoothGatt: BluetoothGatt
     private val adapter: BleDataRVAdapter by inject()
+    private val bleClient: RxBleClient by inject()
+    private val compositeDisposable = CompositeDisposable()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -28,9 +48,9 @@ class MainActivity : BaseActivity() {
 
         toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
 
-        bleDevice?.device?.connectGatt(this, true, gattCallback)?.let {
-            bluetoothGatt = it
-        }
+//        bleDevice?.device?.connectGatt(this, true, gattCallback)?.let {
+//            bluetoothGatt = it
+//        }
 
         adapter.addData("## DEVICE ##")
         adapter.addData("UUID: ${bleDevice?.device?.uuids.toString()}")
@@ -49,9 +69,111 @@ class MainActivity : BaseActivity() {
         adapter.notifyDataSetChanged()
 
         sr_data.setOnRefreshListener {
-            val characteristic = bluetoothGatt.getService(Maxim.service).getCharacteristic(Maxim.dataCharacteristic)
-            bluetoothGatt.readCharacteristic(characteristic)
+            bluetoothGatt.discoverServices()
         }
+
+        val connection = bleClient.getBleDevice(bleDevice?.device?.address!!)
+            .establishConnection(true).compose(ReplayingShare.instance())
+//        val commandsStreamType = sendCommand(Commands.setStreamTypeToBinary)
+//        val commandsTimeCommand = sendCommand(Commands.createSetTimeCommand())
+        val commandsInterval = sendCommand(Commands.createTempSampleIntervalCommand(500))
+        val commandsReadTemp = sendCommand(Commands.readTemp)
+
+//        for (command in commandsTimeCommand){
+//            compositeDisposable.add(connection.flatMap {
+//                it.writeCharacteristic(Maxim.rawDataCharacteristic, command).toObservable()
+//            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
+//                Log.i("Data Time Command", it?.contentToString())
+//            }, {
+//                Log.e("Error Time Command", it.localizedMessage)
+//            }))
+//        }
+//
+//        for(command in commandsStreamType){
+//            compositeDisposable.add(connection.flatMap {
+//                it.writeCharacteristic(Maxim.rawDataCharacteristic, command).toObservable()
+//            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
+//                Log.i("Data Stream Type", it?.contentToString())
+//            }, {
+//                Log.e("Error Stream Type", it.localizedMessage)
+//            }))
+//        }
+
+        compositeDisposable.add(connection.flatMap {
+            commandsInterval.toObservable().flatMap { data ->
+                it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
+            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
+            Log.i("Data Interval", it?.contentToString())
+        }, {
+            Log.e("Error Interval", it.localizedMessage)
+        }))
+
+        compositeDisposable.add(connection.flatMap {
+            commandsReadTemp.toObservable().flatMap { data ->
+                it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
+            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
+            Log.i("Data Read Temp", it?.contentToString())
+        }, {
+            Log.e("Error Read Temp", it.localizedMessage)
+        }))
+
+        compositeDisposable.add(connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
+            .flatMap { observable -> observable }
+            .filter {
+                it[0] == 170.toByte()
+            }.subscribeOn(Schedulers.computation()).observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ data ->
+                Log.i("Data Notification", data?.contentToString())
+                runOnUiThread { toast("Data Notif: ${data?.contentToString()}") }
+            }, {
+                Log.e("Error Notification", it.localizedMessage)
+            }))
+    }
+
+    private fun sendCommand(str: String): ArrayList<ByteArray> {
+        var bArr: ByteArray?
+        val sb = StringBuilder()
+        sb.append(str)
+        sb.append("\n")
+        val chunked = sb.chunked(16)
+        val arrayList = ArrayList<ByteArray>()
+        for (str2 in chunked) {
+            val length = 16 - str2.length
+            when {
+                length == 0 -> {
+                    val charset: Charset = UTF_8
+                    bArr = str2.toByteArray(charset)
+                }
+                length >= 0 -> {
+                    val bArr2 = ByteArray(16)
+                    val charSequence: CharSequence = str2
+                    var i = 0
+                    var i2 = 0
+                    while (i < charSequence.length) {
+                        val i3 = i2 + 1
+                        bArr2[i2] = charSequence[i].toByte()
+                        i++
+                        i2 = i3
+                    }
+                    for (length2 in str2.length..15) {
+                        bArr2[length2] = 0
+                    }
+                    bArr = bArr2
+                }
+                else -> {
+                    val sb2 = StringBuilder()
+                    sb2.append("String is bigger than ")
+                    sb2.append(16)
+                    sb2.append(" bytes")
+                    throw IllegalArgumentException(sb2.toString())
+                }
+            }
+            arrayList.add(bArr)
+        }
+
+        return arrayList
     }
 
     override fun setLayout(): Int {
@@ -72,7 +194,7 @@ class MainActivity : BaseActivity() {
         }
 
         override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            bluetoothGatt.services?.let { displayGattServices(it) }
+            gatt?.services?.let { displayGattServices(it) }
         }
 
         override fun onCharacteristicChanged(
@@ -87,6 +209,9 @@ class MainActivity : BaseActivity() {
             characteristic: BluetoothGattCharacteristic,
             status: Int
         ) {
+            adapter.addData("On Characteristic Read")
+            adapter.addData("Value: ${characteristic.value.contentToString()}")
+            runOnUiThread { adapter.notifyDataSetChanged() }
             displayDescriptor(characteristic.descriptors)
         }
 
@@ -95,7 +220,9 @@ class MainActivity : BaseActivity() {
             characteristic: BluetoothGattCharacteristic?,
             status: Int
         ) {
-            val characteristic = bluetoothGatt.getService(Maxim.service).getCharacteristic(Maxim.dataCharacteristic)
+            adapter.addData("On Characteristic Write")
+            adapter.addData("Value: ${characteristic?.value?.contentToString()}")
+            runOnUiThread { adapter.notifyDataSetChanged() }
             bluetoothGatt.readCharacteristic(characteristic)
         }
 
@@ -112,9 +239,7 @@ class MainActivity : BaseActivity() {
             descriptor: BluetoothGattDescriptor,
             status: Int
         ) {
-            val characteristic = bluetoothGatt.getService(Maxim.service).getCharacteristic(Maxim.rawDataCharacteristic)
-            characteristic.value = byteArrayOf(0, 170.toByte())
-            bluetoothGatt.writeCharacteristic(characteristic)
+            super.onDescriptorWrite(gatt, descriptor, status)
         }
 
         override fun onMtuChanged(gatt: BluetoothGatt?, mtu: Int, status: Int) {
@@ -168,11 +293,10 @@ class MainActivity : BaseActivity() {
 
                 runOnUiThread { adapter.notifyDataSetChanged() }
 
+                sendCommand(Commands.createTempSampleIntervalCommand(500))
                 bluetoothGatt.setCharacteristicNotification(characteristic, true)
+
                 displayDescriptor(characteristic.descriptors)
-            }
-            else {
-                bluetoothGatt.setCharacteristicNotification(characteristic, false)
             }
         }
     }

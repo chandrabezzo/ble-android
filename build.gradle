@@ -5,7 +5,6 @@ buildscript {
     repositories {
         google()
         jcenter()
-        
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.6.1'
@@ -21,6 +20,8 @@ allprojects {
         google()
         jcenter()
         maven { url 'https://jitpack.io' }
+        maven { url "https://oss.jfrog.org/libs-snapshot" }
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
     }
 }
 

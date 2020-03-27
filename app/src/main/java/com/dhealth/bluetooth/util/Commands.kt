@@ -19,7 +19,7 @@ object Commands {
     fun createTempSampleIntervalCommand(interval: Int): String {
         val sb = StringBuilder()
         sb.append("set_cfg temp sr ")
-        sb.append(interval)
+        sb.append(interval.toString())
         return sb.toString()
     }
 
