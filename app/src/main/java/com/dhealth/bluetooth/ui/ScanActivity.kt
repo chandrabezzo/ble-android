@@ -2,7 +2,6 @@ package com.dhealth.bluetooth.ui
 
 import android.bluetooth.*
 import android.bluetooth.le.ScanCallback
-import android.bluetooth.le.ScanRecord
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.content.Intent
@@ -19,7 +18,6 @@ import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.adapter.BleDeviceRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
-import com.dhealth.bluetooth.util.BleUtil
 import com.dhealth.bluetooth.util.GpsUtil
 import com.dhealth.bluetooth.util.PermissionUtil
 import com.google.android.material.snackbar.Snackbar
@@ -171,7 +169,7 @@ class ScanActivity : BaseActivity() {
     private val gattCallback = object: BluetoothGattCallback(){
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             if(newState == BluetoothProfile.STATE_CONNECTED){
-                launchActivity<MainActivity>{
+                launchActivity<ActionActivity>{
                     putExtra(Extras.BLE_DEVICE, selectedDevice)
                 }
             }

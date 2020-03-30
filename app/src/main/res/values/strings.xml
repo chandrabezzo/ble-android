@@ -1,3 +1,6 @@
 <resources>
     <string name="app_name">Bluetooth Research</string>
+    <string name="electrocardiogram">Electrocardiogram</string>
+    <string name="optical_hrm">Optical HRM</string>
+    <string name="temperature">Temperature</string>
 </resources>
