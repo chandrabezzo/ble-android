@@ -60,39 +60,31 @@ object TemperatureUtil {
         }))
     }
 
-    fun commandSetupNotification(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandGetTemperature(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
+                              callback: TemperatureCallback){
         compositeDisposable.add(connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
             .flatMap { observable -> observable }
             .filter {
                 it[0] == 170.toByte()
             }.subscribeOn(Schedulers.computation()).observeOn(AndroidSchedulers.mainThread())
             .subscribe({ data ->
-                val temp =
-                    TemperatureUtil.mapper(data)
-                Log.i("Data Notification", data.contentToString())
-                Log.i("Suhu",
-                    MeasurementUtil.decimalFormat(
-                        temp.temperature
-                    )
-                )
-                val fahrenheit =
-                    TemperatureUtil.temperatureToFahrenheit(
-                        temp.temperature
-                    )
-                Log.i("Suhu Fahrenheit",
-                    MeasurementUtil.decimalFormat(
-                        fahrenheit
-                    )
-                )
-                Log.i("Suhu Celcius",
-                    MeasurementUtil.decimalFormat(
-                        temperatureToCelcius(
-                            fahrenheit
-                        )
-                    )
-                )
+                val temp = mapper(data)
+                val fahrenheit = temperatureToFahrenheit(temp.temperature)
+                callback.originalData(data)
+                callback.temperatureInCelcius(temp.temperature)
+                callback.temperatureInFahrenheit(fahrenheit)
             }, {
-                Log.e("Error Notification", it.localizedMessage)
+                callback.onError(it)
             }))
     }
+}
+
+interface TemperatureCallback {
+    fun originalData(values: ByteArray)
+
+    fun temperatureInCelcius(value: Float)
+
+    fun temperatureInFahrenheit(value: Float)
+
+    fun onError(error: Throwable)
 }
