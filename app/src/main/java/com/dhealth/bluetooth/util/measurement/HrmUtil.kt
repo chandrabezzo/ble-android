@@ -84,7 +84,8 @@ object HrmUtil {
         }))
     }
 
-    fun commandGetHrm(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandGetHrm(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
+                      callback: HrmCallback){
         compositeDisposable.add(connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
             .flatMap { observable -> observable }
             .filter {
@@ -92,10 +93,28 @@ object HrmUtil {
             }.subscribeOn(Schedulers.computation()).observeOn(AndroidSchedulers.mainThread())
             .subscribe({ data ->
                 val hrm = mapper(data)
-                Log.i("Data Get HRM", data.contentToString())
-                Log.i("Data HRM", hrm.toString())
+                callback.originalData(data)
+                callback.channel1(hrm.green1Count)
+                callback.channel2(hrm.green2Count)
+                callback.heartRate(hrm.heartRate)
+                callback.heartRateConfidence("${hrm.heartRateConfidence}%")
+                callback.activity(hrmActivity(hrm.activityCode))
             }, {
                 Log.e("Error Get HRM", it.localizedMessage)
             }))
     }
+}
+
+interface HrmCallback {
+    fun originalData(values: ByteArray)
+
+    fun channel1(value: Int)
+
+    fun channel2(value: Int)
+
+    fun heartRate(value: Int)
+
+    fun heartRateConfidence(value: String)
+
+    fun activity(value: String)
 }

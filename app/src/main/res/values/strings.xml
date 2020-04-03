@@ -3,4 +3,5 @@
     <string name="electrocardiogram">Electrocardiogram</string>
     <string name="optical_hrm">Optical HRM</string>
     <string name="temperature">Temperature</string>
+    <string name="invert_ecg">Invert ECG</string>
 </resources>

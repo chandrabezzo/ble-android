@@ -70,7 +70,6 @@ class TemperatureActivity : BaseActivity() {
 
     override fun onDestroy() {
         MeasurementUtil.commandStop(compositeDisposable, connection)
-        compositeDisposable.dispose()
         connectionDisposable.dispose()
         super.onDestroy()
     }

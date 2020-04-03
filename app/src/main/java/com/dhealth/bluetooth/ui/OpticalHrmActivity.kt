@@ -66,7 +66,7 @@ class OpticalHrmActivity : BaseActivity() {
 
     override fun onDestroy() {
         MeasurementUtil.commandStop(compositeDisposable, connection)
-        compositeDisposable.dispose()
+        connectionDisposable.dispose()
         super.onDestroy()
     }
 
@@ -74,6 +74,55 @@ class OpticalHrmActivity : BaseActivity() {
         HrmUtil.commandMinConfidenceLevel(compositeDisposable, connection, 0)
         HrmUtil.commandHrExpireDuration(compositeDisposable, connection, 30)
         HrmUtil.commandReadHrm(compositeDisposable, connection)
-        HrmUtil.commandGetHrm(compositeDisposable, connection)
+        HrmUtil.commandGetHrm(compositeDisposable, connection, object : HrmCallback{
+            override fun originalData(values: ByteArray) {
+                Log.i("Data HRM", values.contentToString())
+                runOnUiThread {
+                    adapter.addData("Original: ${values.contentToString()}")
+                    adapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun channel1(value: Int) {
+                Log.i("Channel 1", value.toString())
+                runOnUiThread {
+                    adapter.addData("Channel 1: $value")
+                    adapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun channel2(value: Int) {
+                Log.i("Channel 2", value.toString())
+                runOnUiThread {
+                    adapter.addData("Channel 2: $value")
+                    adapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun heartRate(value: Int) {
+                Log.i("Heart Rate", value.toString())
+                runOnUiThread {
+                    adapter.addData("Heart Rate: $value")
+                    adapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun heartRateConfidence(value: String) {
+                Log.i("Heart Rate Confidence", value)
+                runOnUiThread {
+                    adapter.addData("Heart Rate Confidence: $value")
+                    adapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun activity(value: String) {
+                Log.i("Activity", value)
+                runOnUiThread {
+                    adapter.addData("Activity: $value")
+                    adapter.notifyDataSetChanged()
+                }
+            }
+
+        })
     }
 }
