@@ -17,7 +17,9 @@ import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.functions.Consumer
+import kotlinx.android.synthetic.main.activity_optical_hrm.*
 import kotlinx.android.synthetic.main.activity_temperature.*
+import kotlinx.android.synthetic.main.activity_temperature.toolbar
 import org.koin.android.ext.android.inject
 
 class OpticalHrmActivity : BaseActivity() {

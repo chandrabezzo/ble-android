@@ -4,4 +4,6 @@
     <string name="optical_hrm">Optical HRM</string>
     <string name="temperature">Temperature</string>
     <string name="invert_ecg">Invert ECG</string>
+    <string name="derajat_celcius">°C</string>
+    <string name="derajat_fahrenheit">°F</string>
 </resources>

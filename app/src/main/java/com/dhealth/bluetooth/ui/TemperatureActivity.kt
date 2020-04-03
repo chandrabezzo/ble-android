@@ -2,19 +2,19 @@ package com.dhealth.bluetooth.ui
 
 import android.os.Bundle
 import android.util.Log
-import androidx.recyclerview.widget.LinearLayoutManager
+import android.view.WindowManager
+import androidx.core.content.ContextCompat
 import com.bezzo.core.base.BaseActivity
 import com.dhealth.bluetooth.R
-import com.dhealth.bluetooth.adapter.BleDataRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
-import com.dhealth.bluetooth.util.BleUtil
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
 import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.util.measurement.TemperatureCallback
 import com.dhealth.bluetooth.util.measurement.TemperatureUtil
-import com.jakewharton.rx.ReplayingShare
-import com.polidea.rxandroidble2.RxBleClient
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
@@ -27,10 +27,11 @@ import org.koin.android.ext.android.inject
 class TemperatureActivity : BaseActivity() {
 
     private var bleDevice: BleDevice? = null
-    private val adapter: BleDataRVAdapter by inject()
     private val compositeDisposable: CompositeDisposable by inject()
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
+    private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data Temperature")
+    private var isCelcius = true
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -39,29 +40,32 @@ class TemperatureActivity : BaseActivity() {
             this.connection = connection
         })
 
-        val layoutManager = LinearLayoutManager(this)
-        rv_device_data.layoutManager = layoutManager
-        rv_device_data.adapter = adapter
+        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
         toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
 
-        adapter.addData("## DEVICE ##")
-        adapter.addData("UUID: ${bleDevice?.device?.uuids.toString()}")
-        adapter.addData("RSSI: ${bleDevice?.rssi}")
-        adapter.addData("Scan Record: ${bleDevice?.scanRecord?.contentToString()}")
-        adapter.addData("Device Class: ${bleDevice?.device?.bluetoothClass?.deviceClass}")
-        adapter.addData("Major Device Class: ${bleDevice?.device?.bluetoothClass?.majorDeviceClass}")
-        bleDevice?.device?.bondState?.let { bondState ->
-            adapter.addData("Bond State: ${BleUtil.bondState(bondState)}")
-        }
-        bleDevice?.device?.type?.let { type ->
-            adapter.addData("Device Type: ${BleUtil.type(type)}")
-        }
-        adapter.addData("Fetch UUID With SDP: ${bleDevice?.device?.fetchUuidsWithSdp()}")
+        chartDesign()
 
-        adapter.notifyDataSetChanged()
+        rb_celcius.setOnCheckedChangeListener { buttonView, isChecked ->
+            isCelcius = isChecked
+            chart_temp.axisLeft.valueFormatter = TemperatureValueFormatter(this, isCelcius)
+            chart_temp.clear()
+            chart_temp.clearAnimation()
+            lineDataset.clear()
+            chart_temp.notifyDataSetChanged()
+            chart_temp.invalidate()
+        }
 
-        doMeasurement()
+        rb_fahrenheit.setOnCheckedChangeListener { buttonView, isChecked ->
+            isCelcius = !isChecked
+            chart_temp.axisLeft.valueFormatter = TemperatureValueFormatter(this, isCelcius)
+            chart_temp.clear()
+            chart_temp.clearAnimation()
+            lineDataset.clear()
+            chart_temp.notifyDataSetChanged()
+            chart_temp.invalidate()
+        }
     }
 
     override fun setLayout(): Int {
@@ -74,32 +78,90 @@ class TemperatureActivity : BaseActivity() {
         super.onDestroy()
     }
 
+    private fun chartDesign(){
+        lineDataset.color = ContextCompat.getColor(this, R.color.black_effective)
+        lineDataset.lineWidth = 2.0F
+        lineDataset.setCircleColor(ContextCompat.getColor(this, R.color.colorPrimary))
+        lineDataset.circleHoleColor = ContextCompat.getColor(this, R.color.colorAccent)
+        lineDataset.setDrawCircles(true)
+        lineDataset.setDrawValues(true)
+        lineDataset.valueTextSize = 16F
+        chart_temp.setNoDataTextColor(ContextCompat.getColor(this, R.color.black_effective))
+        chart_temp.legend.isEnabled = false
+        chart_temp.description.isEnabled = false
+        chart_temp.xAxis.isEnabled = false
+        chart_temp.axisRight.isEnabled = false
+        chart_temp.axisLeft.isEnabled = true
+        chart_temp.axisLeft.setDrawTopYLabelEntry(true)
+        chart_temp.axisLeft.valueFormatter = TemperatureValueFormatter(this, isCelcius)
+        chart_temp.setTouchEnabled(false)
+        chart_temp.isAutoScaleMinMaxEnabled = true
+        chart_temp.xAxis.axisMinimum = 0F
+        chart_temp.xAxis.axisMaximum = 20F
+        chart_temp.setVisibleXRangeMaximum(20F)
+
+        doMeasurement()
+    }
+
+    private fun renderDataSet(value: Float){
+        if(chart_temp.data == null){
+            chart_temp.data = LineData()
+        }
+
+        if(chart_temp.data.dataSets.isEmpty()){
+            chart_temp.data.addDataSet(lineDataset)
+        }
+
+        val xValue = if(lineDataset.entryCount != 0){
+            val data = lineDataset.getEntryForIndex(lineDataset.entryCount - 1)
+            data.x + 1F
+        } else {
+            0F
+        }
+
+        addEntryToDataSet(Entry(xValue, value))
+
+        if(xValue > 20){
+            chart_temp.xAxis.resetAxisMinimum()
+            chart_temp.xAxis.resetAxisMaximum()
+        }
+
+        chart_temp.data.notifyDataChanged()
+        chart_temp.notifyDataSetChanged()
+        chart_temp.moveViewToX(xValue)
+    }
+
+    private fun addEntryToDataSet(data: Entry){
+        if(lineDataset.entryCount == 20){
+            lineDataset.removeFirst()
+        }
+
+        lineDataset.addEntry(data)
+    }
+
     private fun doMeasurement(){
         TemperatureUtil.commandInterval(compositeDisposable, connection, 500)
         TemperatureUtil.commandReadTemp(compositeDisposable, connection)
-        adapter.addData("## PEMERIKSAAN SUHU ##")
         TemperatureUtil.commandGetTemperature(compositeDisposable, connection, object : TemperatureCallback {
             override fun originalData(values: ByteArray) {
                 Log.i("Data Notification", values.contentToString())
-                runOnUiThread {
-                    adapter.addData("Original: ${values.contentToString()}")
-                    adapter.notifyDataSetChanged()
-                }
             }
 
             override fun temperatureInCelcius(value: Float) {
                 Log.i("Suhu", MeasurementUtil.decimalFormat(value))
-                runOnUiThread {
-                    adapter.addData("Celcius: $value")
-                    adapter.notifyDataSetChanged()
+                if(isCelcius) {
+                    runOnUiThread {
+                        renderDataSet(value)
+                    }
                 }
             }
 
             override fun temperatureInFahrenheit(value: Float) {
                 Log.i("Suhu Fahrenheit", MeasurementUtil.decimalFormat(value))
-                runOnUiThread {
-                    adapter.addData("Fahrenheit: $value")
-                    adapter.notifyDataSetChanged()
+                if(!isCelcius){
+                    runOnUiThread {
+                        renderDataSet(value)
+                    }
                 }
             }
 
