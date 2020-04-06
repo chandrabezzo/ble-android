@@ -6,4 +6,11 @@
     <string name="invert_ecg">Invert ECG</string>
     <string name="derajat_celcius">°C</string>
     <string name="derajat_fahrenheit">°F</string>
+    <string name="bpm">BPM</string>
+    <string name="heart_rate">Heart Rate</string>
+    <string name="activity">Activity</string>
+    <string name="confidence">Confidence</string>
+    <string name="ch1">Ch1</string>
+    <string name="ch2">Ch2</string>
+    <item name="fraction" type="fraction">5%</item>
 </resources>

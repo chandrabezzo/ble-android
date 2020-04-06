@@ -94,8 +94,7 @@ object HrmUtil {
             .subscribe({ data ->
                 val hrm = mapper(data)
                 callback.originalData(data)
-                callback.channel1(hrm.green1Count)
-                callback.channel2(hrm.green2Count)
+                callback.channel(hrm.green1Count, hrm.green2Count)
                 callback.heartRate(hrm.heartRate)
                 callback.heartRateConfidence("${hrm.heartRateConfidence}%")
                 callback.activity(hrmActivity(hrm.activityCode))
@@ -108,9 +107,7 @@ object HrmUtil {
 interface HrmCallback {
     fun originalData(values: ByteArray)
 
-    fun channel1(value: Int)
-
-    fun channel2(value: Int)
+    fun channel(channel1: Int, channel2: Int)
 
     fun heartRate(value: Int)
 
