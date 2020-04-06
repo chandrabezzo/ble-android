@@ -152,6 +152,8 @@ class TemperatureActivity : BaseActivity() {
                 if(isCelcius) {
                     runOnUiThread {
                         renderDataSet(value)
+                        val suhu = MeasurementUtil.decimalFormat(value)
+                        tv_celcius.text = "$suhu ${getString(R.string.derajat_celcius)}"
                     }
                 }
             }
@@ -163,6 +165,9 @@ class TemperatureActivity : BaseActivity() {
                         renderDataSet(value)
                     }
                 }
+
+                val suhu = MeasurementUtil.decimalFormat(value)
+                tv_fahrenheit.text = "$suhu ${getString(R.string.derajat_fahrenheit)}"
             }
 
             override fun onError(error: Throwable) {
