@@ -1,8 +1,11 @@
 package com.dhealth.bluetooth.ui
 
+import android.icu.util.Measure
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bezzo.core.base.BaseActivity
 import com.bezzo.core.extension.toast
@@ -11,10 +14,10 @@ import com.dhealth.bluetooth.adapter.BleDataRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.util.BleUtil
-import com.dhealth.bluetooth.util.measurement.EcgUtil
-import com.dhealth.bluetooth.util.measurement.MeasurementUtil
-import com.dhealth.bluetooth.util.measurement.MovingAverage
-import com.dhealth.bluetooth.util.measurement.RxBus
+import com.dhealth.bluetooth.util.measurement.*
+import com.github.mikephil.charting.data.Entry
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
@@ -26,11 +29,11 @@ import org.koin.android.ext.android.inject
 class ElectrocardiogramActivity : BaseActivity() {
 
     private var bleDevice: BleDevice? = null
-    private val adapter: BleDataRVAdapter by inject()
     private val compositeDisposable: CompositeDisposable by inject()
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
     private val movingAverage = MovingAverage(5)
+    private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data ECG")
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -41,30 +44,10 @@ class ElectrocardiogramActivity : BaseActivity() {
 
         setSupportActionBar(toolbar)
 
-        val layoutManager = LinearLayoutManager(this)
-        rv_device_data.layoutManager = layoutManager
-        rv_device_data.adapter = adapter
-
         toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
 
-        adapter.addData("## DEVICE ##")
-        adapter.addData("UUID: ${bleDevice?.device?.uuids.toString()}")
-        adapter.addData("RSSI: ${bleDevice?.rssi}")
-        adapter.addData("Scan Record: ${bleDevice?.scanRecord?.contentToString()}")
-        adapter.addData("Device Class: ${bleDevice?.device?.bluetoothClass?.deviceClass}")
-        adapter.addData("Major Device Class: ${bleDevice?.device?.bluetoothClass?.majorDeviceClass}")
-        bleDevice?.device?.bondState?.let { bondState ->
-            adapter.addData("Bond State: ${BleUtil.bondState(bondState)}")
-        }
-        bleDevice?.device?.type?.let { type ->
-            adapter.addData("Device Type: ${BleUtil.type(type)}")
-        }
-        adapter.addData("Fetch UUID With SDP: ${bleDevice?.device?.fetchUuidsWithSdp()}")
-
-        adapter.notifyDataSetChanged()
-
         movingAverage.reset()
-        doMeasurement(false)
+        chartDesign()
     }
 
     override fun setLayout(): Int {
@@ -86,7 +69,31 @@ class ElectrocardiogramActivity : BaseActivity() {
         }
 
         EcgUtil.commandReadEcg(compositeDisposable, connection)
-        EcgUtil.commandGetEcg(compositeDisposable, connection, isDefault, movingAverage)
+        EcgUtil.commandGetEcg(compositeDisposable, connection, isDefault, movingAverage,
+            object : EcgCallback {
+                override fun originalData(values: ByteArray) {
+                    Log.i("Data ECG", values.contentToString())
+                }
+
+                override fun ecgMv(value: Float) {
+                    Log.i("ECG", MeasurementUtil.decimalFormat(value))
+                    runOnUiThread {
+                        renderDataSet(value);
+                        tv_ecg_mv.text = value.toString()
+                    }
+                }
+
+                override fun averageRToR(value: Float) {
+                    Log.i("Average R-to-R", MeasurementUtil.decimalFormat(value))
+                    runOnUiThread { tv_average.text = "${MeasurementUtil.decimalFormat(value)} " +
+                            "${getString(R.string.bpm)}" }
+                }
+
+                override fun currentRToR(value: Int) {
+                    runOnUiThread { tv_current.text = "$value ${getString(R.string.bpm)}" }
+                }
+
+            })
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -101,5 +108,56 @@ class ElectrocardiogramActivity : BaseActivity() {
             }
         }
         return true
+    }
+
+    private fun chartDesign(){
+        lineDataset.color = ContextCompat.getColor(this, R.color.black_effective)
+        lineDataset.lineWidth = 2F
+        lineDataset.setDrawCircles(false)
+        lineDataset.setDrawValues(false)
+        ecg_chart.setNoDataTextColor(ContextCompat.getColor(this, R.color.colorAccent))
+        ecg_chart.legend.isEnabled = true
+        ecg_chart.description.isEnabled = false
+        ecg_chart.xAxis.isEnabled = false
+        ecg_chart.axisRight.isEnabled = false
+        ecg_chart.axisLeft.isEnabled = true
+        ecg_chart.axisLeft.setDrawTopYLabelEntry(true)
+        ecg_chart.setTouchEnabled(false)
+        ecg_chart.isAutoScaleMinMaxEnabled = true
+        ecg_chart.xAxis.axisMinimum = 0F
+        ecg_chart.xAxis.axisMaximum = 512F
+        ecg_chart.setVisibleXRangeMaximum(512F)
+
+        doMeasurement(false)
+    }
+
+    private fun renderDataSet(value: Float){
+        if(ecg_chart.data == null) ecg_chart.data = LineData()
+
+        if(ecg_chart.data.dataSets.isEmpty()) ecg_chart.data.addDataSet(lineDataset)
+
+        val xValue = if(lineDataset.entryCount != 0){
+            val data = lineDataset.getEntryForIndex(lineDataset.entryCount - 1)
+            data.x + 1F
+        } else {
+            0F
+        }
+
+        addEntryToDataSet(Entry(xValue, value))
+
+        if(xValue > 512){
+            ecg_chart.xAxis.resetAxisMinimum()
+            ecg_chart.xAxis.resetAxisMaximum()
+        }
+
+        ecg_chart.data.notifyDataChanged()
+        ecg_chart.notifyDataSetChanged()
+        ecg_chart.moveViewToX(xValue)
+    }
+
+    private fun addEntryToDataSet(data: Entry){
+        if(lineDataset.entryCount == 512) lineDataset.removeFirst()
+
+        lineDataset.addEntry(data)
     }
 }

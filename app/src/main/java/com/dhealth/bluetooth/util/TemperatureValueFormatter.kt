@@ -1,4 +1,4 @@
-package com.dhealth.bluetooth.ui
+package com.dhealth.bluetooth.util
 
 import android.content.Context
 import com.dhealth.bluetooth.R

@@ -12,5 +12,7 @@
     <string name="confidence">Confidence</string>
     <string name="ch1">Ch1</string>
     <string name="ch2">Ch2</string>
-    <item name="fraction" type="fraction">5%</item>
+    <string name="average_r">Average R-to-R</string>
+    <string name="current_r">Current R-to-R</string>
+    <string name="ecg_mv">ECG Mv</string>
 </resources>

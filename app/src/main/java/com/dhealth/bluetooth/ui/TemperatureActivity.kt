@@ -8,6 +8,7 @@ import com.bezzo.core.base.BaseActivity
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
+import com.dhealth.bluetooth.util.TemperatureValueFormatter
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
 import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.util.measurement.TemperatureCallback
@@ -49,7 +50,11 @@ class TemperatureActivity : BaseActivity() {
 
         rb_celcius.setOnCheckedChangeListener { buttonView, isChecked ->
             isCelcius = isChecked
-            chart_temp.axisLeft.valueFormatter = TemperatureValueFormatter(this, isCelcius)
+            chart_temp.axisLeft.valueFormatter =
+                TemperatureValueFormatter(
+                    this,
+                    isCelcius
+                )
             chart_temp.clear()
             chart_temp.clearAnimation()
             lineDataset.clear()
@@ -59,7 +64,11 @@ class TemperatureActivity : BaseActivity() {
 
         rb_fahrenheit.setOnCheckedChangeListener { buttonView, isChecked ->
             isCelcius = !isChecked
-            chart_temp.axisLeft.valueFormatter = TemperatureValueFormatter(this, isCelcius)
+            chart_temp.axisLeft.valueFormatter =
+                TemperatureValueFormatter(
+                    this,
+                    isCelcius
+                )
             chart_temp.clear()
             chart_temp.clearAnimation()
             lineDataset.clear()
@@ -93,7 +102,8 @@ class TemperatureActivity : BaseActivity() {
         chart_temp.axisRight.isEnabled = false
         chart_temp.axisLeft.isEnabled = true
         chart_temp.axisLeft.setDrawTopYLabelEntry(true)
-        chart_temp.axisLeft.valueFormatter = TemperatureValueFormatter(this, isCelcius)
+        chart_temp.axisLeft.valueFormatter =
+            TemperatureValueFormatter(this, isCelcius)
         chart_temp.setTouchEnabled(false)
         chart_temp.isAutoScaleMinMaxEnabled = true
         chart_temp.xAxis.axisMinimum = 0F

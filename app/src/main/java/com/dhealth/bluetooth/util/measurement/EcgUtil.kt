@@ -42,21 +42,24 @@ object EcgUtil {
     }
 
     fun commandGetEcg(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
-                      isDefault: Boolean, movingAverage: MovingAverage){
+                      isDefault: Boolean, movingAverage: MovingAverage, callback: EcgCallback){
         compositeDisposable.add(connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
             .flatMap { observable -> observable }
             .filter {
                 it[0] == 170.toByte()
             }.subscribeOn(Schedulers.computation()).observeOn(AndroidSchedulers.mainThread())
             .subscribe({ data ->
-                Log.i("Data ECG", data.contentToString())
+                callback.originalData(data)
                 val ecgs = mapper(data, isDefault)
                 for(ecg in ecgs){
                     if(ecg?.currentRToRBpm != 0){
                         ecg?.currentRToRBpm?.toFloat()?.let { movingAverage.add(it) }
                     }
+
                     ecg?.averageRToRBpm = movingAverage.getAverage()
-                    Log.i("ECG", ecg.toString())
+                    ecg?.ecgMv?.let { ecgMv -> callback.ecgMv(ecgMv) }
+                    ecg?.averageRToRBpm?.let { average -> callback.averageRToR(average) }
+                    ecg?.currentRToRBpm?.let { current -> callback.currentRToR(current) }
                 }
             }, {
                 Log.e("Error ECG", it.localizedMessage)
@@ -136,4 +139,14 @@ object EcgUtil {
             Log.e("Error Read Ecg", it.localizedMessage)
         }))
     }
+}
+
+interface EcgCallback {
+    fun originalData(values: ByteArray)
+
+    fun ecgMv(value: Float)
+
+    fun averageRToR(value: Float)
+
+    fun currentRToR(value: Int)
 }
