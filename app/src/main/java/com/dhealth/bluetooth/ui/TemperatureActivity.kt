@@ -2,9 +2,12 @@ package com.dhealth.bluetooth.ui
 
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.bezzo.core.base.BaseActivity
+import com.bezzo.core.extension.toast
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
@@ -33,6 +36,7 @@ class TemperatureActivity : BaseActivity() {
     private lateinit var connectionDisposable: Disposable
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data Temperature")
     private var isCelcius = true
+    private var isPlay = false
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -42,8 +46,9 @@ class TemperatureActivity : BaseActivity() {
         })
 
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN);
+            WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
+        setSupportActionBar(toolbar)
         toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
 
         chartDesign()
@@ -82,7 +87,6 @@ class TemperatureActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        MeasurementUtil.commandStop(compositeDisposable, connection)
         connectionDisposable.dispose()
         super.onDestroy()
     }
@@ -109,8 +113,6 @@ class TemperatureActivity : BaseActivity() {
         chart_temp.xAxis.axisMinimum = 0F
         chart_temp.xAxis.axisMaximum = 20F
         chart_temp.setVisibleXRangeMaximum(20F)
-
-        doMeasurement()
     }
 
     private fun renderDataSet(value: Float){
@@ -184,5 +186,42 @@ class TemperatureActivity : BaseActivity() {
                 Log.e("Error Notification", error.localizedMessage)
             }
         })
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.player_menu, menu)
+        val startMenu = menu?.findItem(R.id.nav_start)
+        val stopMenu = menu?.findItem(R.id.nav_stop)
+
+        if(isPlay) {
+            startMenu?.isVisible = false
+            stopMenu?.isVisible = true
+            invalidateOptionsMenu()
+        }
+        else {
+            startMenu?.isVisible = true
+            stopMenu?.isVisible = false
+            invalidateOptionsMenu()
+        }
+
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            R.id.nav_start -> {
+                isPlay = true
+                doMeasurement()
+            }
+            R.id.nav_stop -> {
+                isPlay = false
+                MeasurementUtil.commandStop(compositeDisposable, connection)
+            }
+            R.id.nav_share -> {
+                toast("Share")
+            }
+        }
+
+        return super.onOptionsItemSelected(item)
     }
 }

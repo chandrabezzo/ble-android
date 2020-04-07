@@ -60,4 +60,9 @@ class ActionActivity : BaseActivity() {
     override fun setLayout(): Int {
         return R.layout.activity_action
     }
+
+    override fun onDestroy() {
+        compositeDisposable.dispose()
+        super.onDestroy()
+    }
 }

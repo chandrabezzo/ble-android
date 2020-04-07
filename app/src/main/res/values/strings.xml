@@ -15,4 +15,7 @@
     <string name="average_r">Average R-to-R</string>
     <string name="current_r">Current R-to-R</string>
     <string name="ecg_mv">ECG Mv</string>
+    <string name="start">Start</string>
+    <string name="stop">Stop</string>
+    <string name="share">Share</string>
 </resources>
