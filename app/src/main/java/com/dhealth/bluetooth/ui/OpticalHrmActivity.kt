@@ -3,32 +3,31 @@ package com.dhealth.bluetooth.ui
 import android.graphics.Typeface
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.view.WindowManager
 import androidx.annotation.ColorRes
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.bezzo.core.base.BaseActivity
+import com.bezzo.core.extension.toast
 import com.dhealth.bluetooth.R
-import com.dhealth.bluetooth.adapter.BleDataRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
-import com.dhealth.bluetooth.util.BleUtil
-import com.dhealth.bluetooth.util.measurement.*
+import com.dhealth.bluetooth.util.measurement.HrmCallback
+import com.dhealth.bluetooth.util.measurement.HrmUtil
+import com.dhealth.bluetooth.util.measurement.MeasurementUtil
+import com.dhealth.bluetooth.util.measurement.RxBus
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
-import com.jakewharton.rx.ReplayingShare
-import com.polidea.rxandroidble2.RxBleClient
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.functions.Consumer
 import kotlinx.android.synthetic.main.activity_optical_hrm.*
-import kotlinx.android.synthetic.main.activity_temperature.*
-import kotlinx.android.synthetic.main.activity_temperature.toolbar
 import org.koin.android.ext.android.inject
 import kotlin.math.max
 
@@ -40,6 +39,7 @@ class OpticalHrmActivity : BaseActivity() {
     private lateinit var connectionDisposable: Disposable
     private val ch1 =  LineDataSet(ArrayList<Entry>(), "ch1")
     private val ch2 =  LineDataSet(ArrayList<Entry>(), "ch2")
+    private var isPlay = false
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -51,7 +51,9 @@ class OpticalHrmActivity : BaseActivity() {
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
-        toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
+        setSupportActionBar(toolbar)
+        toolbar.title = "Optical HRM"
+        tv_device_info.text = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
 
         chartDesign()
     }
@@ -122,8 +124,6 @@ class OpticalHrmActivity : BaseActivity() {
         hrm_chart.description.isEnabled = false
         hrm_chart.setTouchEnabled(false)
         hrm_chart.setVisibleXRangeMaximum(100F)
-
-        doMeasurement()
     }
 
     private fun setupDataSet(dataSet: LineDataSet, @ColorRes color: Int, axisDependency: YAxis.AxisDependency){
@@ -179,5 +179,42 @@ class OpticalHrmActivity : BaseActivity() {
     private fun addEntryToDataSet(dataSet: LineDataSet, data: Entry){
         if(dataSet.entryCount == 100) dataSet.removeFirst()
         dataSet.addEntry(data)
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.player_menu, menu)
+        val startMenu = menu?.findItem(R.id.nav_start)
+        val stopMenu = menu?.findItem(R.id.nav_stop)
+
+        if(isPlay) {
+            startMenu?.isVisible = false
+            stopMenu?.isVisible = true
+            invalidateOptionsMenu()
+        }
+        else {
+            startMenu?.isVisible = true
+            stopMenu?.isVisible = false
+            invalidateOptionsMenu()
+        }
+
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId){
+            R.id.nav_start -> {
+                isPlay = true
+                doMeasurement()
+            }
+            R.id.nav_stop -> {
+                isPlay = false
+                MeasurementUtil.commandStop(compositeDisposable, connection)
+            }
+            R.id.nav_share -> {
+                toast("Share")
+            }
+        }
+
+        return super.onOptionsItemSelected(item)
     }
 }

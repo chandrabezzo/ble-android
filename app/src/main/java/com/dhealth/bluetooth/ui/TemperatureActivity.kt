@@ -49,7 +49,8 @@ class TemperatureActivity : BaseActivity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
         setSupportActionBar(toolbar)
-        toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
+        toolbar.title = "Temperature"
+        tv_device_info.text = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
 
         chartDesign()
 
@@ -87,6 +88,7 @@ class TemperatureActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
+        MeasurementUtil.commandStop(compositeDisposable, connection)
         connectionDisposable.dispose()
         super.onDestroy()
     }
