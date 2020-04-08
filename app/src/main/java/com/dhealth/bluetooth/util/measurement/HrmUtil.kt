@@ -7,6 +7,7 @@ import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
 import java.util.*
@@ -40,11 +41,11 @@ object HrmUtil {
         }
     }
 
-    fun commandMinConfidenceLevel(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
-                                  confidenceLevel: Int){
+    fun commandMinConfidenceLevel(connection: Observable<RxBleConnection>,
+                                  confidenceLevel: Int) : Disposable {
         val minConfidenceLevel =
             MeasurementUtil.sendCommand(Commands.createMinConfidenceLevelCommand(confidenceLevel))
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             minConfidenceLevel.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -52,14 +53,14 @@ object HrmUtil {
             Log.i("Data Confidence Level", it?.contentToString())
         }, {
             Log.e("Error Confidence Level", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandHrExpireDuration(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
-                                expireDuration: Int){
+    fun commandHrExpireDuration(connection: Observable<RxBleConnection>,
+                                expireDuration: Int): Disposable {
         val hrmExpireDuration =
             MeasurementUtil.sendCommand(Commands.createHrExpireDurationCommand(expireDuration))
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             hrmExpireDuration.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -67,13 +68,13 @@ object HrmUtil {
             Log.i("Data Expire Duration", it?.contentToString())
         }, {
             Log.e("Error Expire Duration", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandReadHrm(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandReadHrm(connection: Observable<RxBleConnection>): Disposable {
         val readHrm =
             MeasurementUtil.sendCommand(Commands.readHrm)
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             readHrm.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -81,12 +82,12 @@ object HrmUtil {
             Log.i("Data Read HRM", it?.contentToString())
         }, {
             Log.e("Error Read HRM", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandGetHrm(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
-                      callback: HrmCallback){
-        compositeDisposable.add(connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
+    fun commandGetHrm(connection: Observable<RxBleConnection>,
+                      callback: HrmCallback): Disposable {
+        return connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
             .flatMap { observable -> observable }
             .filter {
                 it[0] == 170.toByte()
@@ -100,7 +101,7 @@ object HrmUtil {
                 callback.activity(hrmActivity(hrm.activityCode))
             }, {
                 Log.e("Error Get HRM", it.localizedMessage)
-            }))
+            })
     }
 }
 

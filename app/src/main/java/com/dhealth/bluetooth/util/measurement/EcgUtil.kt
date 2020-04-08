@@ -7,7 +7,7 @@ import com.dhealth.bluetooth.data.model.Ecg
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
 import java.util.*
@@ -41,9 +41,9 @@ object EcgUtil {
         return ecgs
     }
 
-    fun commandGetEcg(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
-                      isDefault: Boolean, movingAverage: MovingAverage, callback: EcgCallback){
-        compositeDisposable.add(connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
+    fun commandGetEcg(connection: Observable<RxBleConnection>, isDefault: Boolean,
+                      movingAverage: MovingAverage, callback: EcgCallback): Disposable {
+        return connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
             .flatMap { observable -> observable }
             .filter {
                 it[0] == 170.toByte()
@@ -63,39 +63,33 @@ object EcgUtil {
                 }
             }, {
                 Log.e("Error ECG", it.localizedMessage)
-            }))
+            })
     }
 
-    fun commandSendDefaultRegisterValues(compositeDisposable: CompositeDisposable,
-                                         connection: Observable<RxBleConnection>){
-        for(entry in Ecg.defaults.entries){
-            val key = entry.key
-            val value = entry.value
+    fun commandSendDefaultRegisterValues(connection: Observable<RxBleConnection>, key: Int, value: Int)
+            : Disposable {
+        val commandsSendRegister = MeasurementUtil.sendCommand(
+            Commands.createSetRegisterCommand(Sensors.ECG, key, value)
+        )
 
-            val commandsSendRegister = MeasurementUtil.sendCommand(
-                Commands.createSetRegisterCommand(Sensors.ECG, key, value)
-            )
-
-            compositeDisposable.add(connection.flatMap {
-                commandsSendRegister.toObservable().flatMap { data ->
-                    it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
-                }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
-            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
-                Log.i("Send Register Values", it?.contentToString())
-            }, {
-                Log.e("Error Send Register", it.localizedMessage)
-            }))
-        }
+        return connection.flatMap {
+            commandsSendRegister.toObservable().flatMap { data ->
+                it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
+            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
+            Log.i("Send Register Values", it?.contentToString())
+        }, {
+            Log.e("Error Send Register", it.localizedMessage)
+        })
     }
 
-    fun commandCreateGetRegister(compositeDisposable: CompositeDisposable,
-                                 connection: Observable<RxBleConnection>){
+    fun commandCreateGetRegister(connection: Observable<RxBleConnection>): Disposable {
         val commandsCreateGetRegister =
             MeasurementUtil.sendCommand(
                 Commands.createGetRegisterCommand(Sensors.ECG, Ecg.ecgGain.address)
             )
 
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsCreateGetRegister.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -103,16 +97,16 @@ object EcgUtil {
             Log.i("Data Get Register", it?.contentToString())
         }, {
             Log.e("Error Get Register", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandEcgInvert(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandEcgInvert(connection: Observable<RxBleConnection>): Disposable {
         val commandsEcgInvert =
             MeasurementUtil.sendCommand(
                 Commands.ecgInvert
             )
 
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsEcgInvert.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -120,16 +114,16 @@ object EcgUtil {
             Log.i("Data Read Ecg", it?.contentToString())
         }, {
             Log.e("Error Read Ecg", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandReadEcg(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandReadEcg(connection: Observable<RxBleConnection>): Disposable {
         val commandsReadEcg =
             MeasurementUtil.sendCommand(
                 Commands.readEcg
             )
 
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsReadEcg.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -137,7 +131,7 @@ object EcgUtil {
             Log.i("Data Read Ecg", it?.contentToString())
         }, {
             Log.e("Error Read Ecg", it.localizedMessage)
-        }))
+        })
     }
 }
 

@@ -1,19 +1,17 @@
 package com.dhealth.bluetooth.ui
 
-import android.icu.util.Measure
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.WindowManager
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
 import com.bezzo.core.base.BaseActivity
 import com.bezzo.core.extension.toast
 import com.dhealth.bluetooth.R
-import com.dhealth.bluetooth.adapter.BleDataRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
-import com.dhealth.bluetooth.util.BleUtil
+import com.dhealth.bluetooth.data.model.Ecg
 import com.dhealth.bluetooth.util.measurement.*
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -32,8 +30,14 @@ class ElectrocardiogramActivity : BaseActivity() {
     private val compositeDisposable: CompositeDisposable by inject()
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
+    private val defaultRegistersDisposable = ArrayList<Disposable>()
+    private lateinit var getRegisterDisposable: Disposable
+    private lateinit var readEcgDisposable: Disposable
+    private lateinit var ecgDisposable: Disposable
     private val movingAverage = MovingAverage(5)
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data ECG")
+    private var isPlay = false
+    private val max = 512F
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -42,11 +46,14 @@ class ElectrocardiogramActivity : BaseActivity() {
             this.connection = connection
         })
 
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN)
+
         setSupportActionBar(toolbar)
+        tv_device_info.text = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
+        toolbar.title = "Electrocardiogram"
 
-        toolbar.title = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
-
-        movingAverage.reset()
         chartDesign()
     }
 
@@ -55,21 +62,32 @@ class ElectrocardiogramActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        MeasurementUtil.commandStop(compositeDisposable, connection)
-        connectionDisposable.dispose()
+        stopEcg()
         super.onDestroy()
     }
 
     private fun doMeasurement(isDefault: Boolean){
         if (isDefault){
-            EcgUtil.commandSendDefaultRegisterValues(compositeDisposable, connection)
+            for(entry in Ecg.defaults.entries){
+                val key = entry.key
+                val value = entry.value
+
+                defaultRegistersDisposable.add(EcgUtil.commandSendDefaultRegisterValues(connection, key, value))
+            }
+
+            for(register in defaultRegistersDisposable){
+                compositeDisposable.add(register)
+            }
         }
         else {
-            EcgUtil.commandCreateGetRegister(compositeDisposable, connection)
+            getRegisterDisposable = EcgUtil.commandCreateGetRegister(connection)
+            compositeDisposable.add(getRegisterDisposable)
         }
 
-        EcgUtil.commandReadEcg(compositeDisposable, connection)
-        EcgUtil.commandGetEcg(compositeDisposable, connection, isDefault, movingAverage,
+        readEcgDisposable = EcgUtil.commandReadEcg(connection)
+        compositeDisposable.add(readEcgDisposable)
+
+        ecgDisposable = EcgUtil.commandGetEcg(connection, isDefault, movingAverage,
             object : EcgCallback {
                 override fun originalData(values: ByteArray) {
                     Log.i("Data ECG", values.contentToString())
@@ -94,20 +112,53 @@ class ElectrocardiogramActivity : BaseActivity() {
                 }
 
             })
+        compositeDisposable.add(ecgDisposable)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.ecg_menu, menu)
-        return super.onCreateOptionsMenu(menu)
+        val startMenu = menu?.findItem(R.id.nav_start)
+        val stopMenu = menu?.findItem(R.id.nav_stop)
+
+        if(isPlay) {
+            startMenu?.isVisible = false
+            stopMenu?.isVisible = true
+            invalidateOptionsMenu()
+        }
+        else {
+            startMenu?.isVisible = true
+            stopMenu?.isVisible = false
+            invalidateOptionsMenu()
+        }
+
+        return true
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId){
-            R.id.nav_insert -> {
-                toast("Invert ECG")
+            R.id.nav_start -> {
+                isPlay = true
+
+                connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
+                    this.connection = connection
+                })
+                movingAverage.reset()
+                clearData()
+                doMeasurement(false)
+            }
+            R.id.nav_stop -> {
+                isPlay = false
+                stopEcg()
+            }
+            R.id.nav_share -> {
+                toast("Share")
+            }
+            R.id.nav_invert -> {
+                toast("Invert")
             }
         }
-        return true
+
+        return super.onOptionsItemSelected(item)
     }
 
     private fun chartDesign(){
@@ -125,10 +176,8 @@ class ElectrocardiogramActivity : BaseActivity() {
         ecg_chart.setTouchEnabled(false)
         ecg_chart.isAutoScaleMinMaxEnabled = true
         ecg_chart.xAxis.axisMinimum = 0F
-        ecg_chart.xAxis.axisMaximum = 512F
-        ecg_chart.setVisibleXRangeMaximum(512F)
-
-        doMeasurement(false)
+        ecg_chart.xAxis.axisMaximum = max
+        ecg_chart.setVisibleXRangeMaximum(max)
     }
 
     private fun renderDataSet(value: Float){
@@ -145,7 +194,7 @@ class ElectrocardiogramActivity : BaseActivity() {
 
         addEntryToDataSet(Entry(xValue, value))
 
-        if(xValue > 512){
+        if(xValue > max){
             ecg_chart.xAxis.resetAxisMinimum()
             ecg_chart.xAxis.resetAxisMaximum()
         }
@@ -156,8 +205,32 @@ class ElectrocardiogramActivity : BaseActivity() {
     }
 
     private fun addEntryToDataSet(data: Entry){
-        if(lineDataset.entryCount == 512) lineDataset.removeFirst()
+        if(lineDataset.entryCount == max.toInt()) lineDataset.removeFirst()
 
         lineDataset.addEntry(data)
+    }
+
+    private fun clearData(){
+        if(ecg_chart.data != null){
+            ecg_chart.data.removeDataSet(lineDataset)
+            lineDataset.clear()
+            ecg_chart.xAxis.axisMinimum = 0F
+            ecg_chart.xAxis.axisMaximum = max
+            ecg_chart.data = null
+            ecg_chart.clear()
+            ecg_chart.invalidate()
+
+        }
+    }
+
+    private fun stopEcg(){
+        MeasurementUtil.commandStop(connection)
+        connectionDisposable.dispose()
+        for(register in defaultRegistersDisposable){
+            register.dispose()
+        }
+        getRegisterDisposable.dispose()
+        readEcgDisposable.dispose()
+        ecgDisposable.dispose()
     }
 }

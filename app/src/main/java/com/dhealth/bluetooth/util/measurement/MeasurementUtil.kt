@@ -6,6 +6,7 @@ import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
 import java.nio.charset.Charset
@@ -27,9 +28,9 @@ object MeasurementUtil {
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
         }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
-            Log.i("Data Create Set Time", it?.contentToString())
+            Log.i("Data Device Info", it?.contentToString())
         }, {
-            Log.e("Error Create Set Time", it.localizedMessage)
+            Log.e("Error Device Info", it.localizedMessage)
         }))
     }
 
@@ -65,12 +66,12 @@ object MeasurementUtil {
         }))
     }
 
-    fun commandStop(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandStop(connection: Observable<RxBleConnection>): Disposable {
         val commandStop =
             sendCommand(
                 Commands.stop
             )
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandStop.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -78,7 +79,7 @@ object MeasurementUtil {
             Log.i("Data Create Set Time", it?.contentToString())
         }, {
             Log.e("Error Create Set Time", it.localizedMessage)
-        }))
+        })
     }
 
     fun sendCommand(str: String): ArrayList<ByteArray> {

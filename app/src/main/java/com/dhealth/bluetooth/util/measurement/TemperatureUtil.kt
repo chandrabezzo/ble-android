@@ -7,6 +7,7 @@ import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
 import java.util.*
@@ -25,14 +26,14 @@ object TemperatureUtil {
         return value * 1.8f + 32.toFloat()
     }
 
-    fun commandInterval(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>, interval: Int){
+    fun commandInterval(connection: Observable<RxBleConnection>, interval: Int): Disposable {
         val commandsInterval =
             MeasurementUtil.sendCommand(
                 Commands.createTempSampleIntervalCommand(
                     interval
                 )
             )
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsInterval.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -40,16 +41,16 @@ object TemperatureUtil {
             Log.i("Data Interval", it?.contentToString())
         }, {
             Log.e("Error Interval", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandReadTemp(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandReadTemp(connection: Observable<RxBleConnection>): Disposable {
         val commandsReadTemp =
             MeasurementUtil.sendCommand(
                 Commands.readTemp
             )
 
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsReadTemp.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -57,12 +58,12 @@ object TemperatureUtil {
             Log.i("Data Read Temp", it?.contentToString())
         }, {
             Log.e("Error Read Temp", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandGetTemperature(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>,
-                              callback: TemperatureCallback){
-        compositeDisposable.add(connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
+    fun commandGetTemperature(connection: Observable<RxBleConnection>,
+                              callback: TemperatureCallback): Disposable {
+        return connection.flatMap { it.setupNotification(Maxim.dataCharacteristic) }
             .flatMap { observable -> observable }
             .filter {
                 it[0] == 170.toByte()
@@ -75,7 +76,7 @@ object TemperatureUtil {
                 callback.temperatureInFahrenheit(fahrenheit)
             }, {
                 callback.onError(it)
-            }))
+            })
     }
 }
 

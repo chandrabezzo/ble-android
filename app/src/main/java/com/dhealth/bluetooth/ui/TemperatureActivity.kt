@@ -34,6 +34,9 @@ class TemperatureActivity : BaseActivity() {
     private val compositeDisposable: CompositeDisposable by inject()
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
+    private lateinit var intervalDisposable: Disposable
+    private lateinit var readTempDisposable: Disposable
+    private lateinit var temperatureDisposable: Disposable
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data Temperature")
     private var isCelcius = true
     private var isPlay = false
@@ -88,8 +91,7 @@ class TemperatureActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        MeasurementUtil.commandStop(compositeDisposable, connection)
-        connectionDisposable.dispose()
+        stopTemperature()
         super.onDestroy()
     }
 
@@ -154,9 +156,13 @@ class TemperatureActivity : BaseActivity() {
     }
 
     private fun doMeasurement(){
-        TemperatureUtil.commandInterval(compositeDisposable, connection, 500)
-        TemperatureUtil.commandReadTemp(compositeDisposable, connection)
-        TemperatureUtil.commandGetTemperature(compositeDisposable, connection, object : TemperatureCallback {
+        intervalDisposable = TemperatureUtil.commandInterval(connection, 500)
+        compositeDisposable.add(intervalDisposable)
+
+        readTempDisposable = TemperatureUtil.commandReadTemp(connection)
+        compositeDisposable.add(readTempDisposable)
+
+        temperatureDisposable = TemperatureUtil.commandGetTemperature(connection, object : TemperatureCallback {
             override fun originalData(values: ByteArray) {
                 Log.i("Data Notification", values.contentToString())
             }
@@ -188,6 +194,7 @@ class TemperatureActivity : BaseActivity() {
                 Log.e("Error Notification", error.localizedMessage)
             }
         })
+        compositeDisposable.add(temperatureDisposable)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -213,11 +220,15 @@ class TemperatureActivity : BaseActivity() {
         when(item.itemId){
             R.id.nav_start -> {
                 isPlay = true
+                connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
+                    this.connection = connection
+                })
+                clearData()
                 doMeasurement()
             }
             R.id.nav_stop -> {
                 isPlay = false
-                MeasurementUtil.commandStop(compositeDisposable, connection)
+                stopTemperature()
             }
             R.id.nav_share -> {
                 toast("Share")
@@ -225,5 +236,25 @@ class TemperatureActivity : BaseActivity() {
         }
 
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun clearData(){
+        if(chart_temp.data != null){
+            chart_temp.lineData.removeDataSet(lineDataset)
+            lineDataset.clear()
+            chart_temp.xAxis.axisMinimum = 0F
+            chart_temp.xAxis.axisMaximum = 20F
+            chart_temp.data = null
+            chart_temp.clear()
+            chart_temp.invalidate()
+        }
+    }
+
+    private fun stopTemperature(){
+        MeasurementUtil.commandStop(connection).dispose()
+        connectionDisposable.dispose()
+        intervalDisposable.dispose()
+        readTempDisposable.dispose()
+        temperatureDisposable.dispose()
     }
 }

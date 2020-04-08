@@ -37,6 +37,10 @@ class OpticalHrmActivity : BaseActivity() {
     private val compositeDisposable: CompositeDisposable by inject()
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
+    private lateinit var hrmDisposable: Disposable
+    private lateinit var minConfidenceLevelDisposable: Disposable
+    private lateinit var hrExpireDurationDisposable: Disposable
+    private lateinit var readHrmDisposable: Disposable
     private val ch1 =  LineDataSet(ArrayList<Entry>(), "ch1")
     private val ch2 =  LineDataSet(ArrayList<Entry>(), "ch2")
     private var isPlay = false
@@ -63,16 +67,21 @@ class OpticalHrmActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        MeasurementUtil.commandStop(compositeDisposable, connection)
-        connectionDisposable.dispose()
+        stopMeasurement()
         super.onDestroy()
     }
 
     private fun doMeasurement(){
-        HrmUtil.commandMinConfidenceLevel(compositeDisposable, connection, 0)
-        HrmUtil.commandHrExpireDuration(compositeDisposable, connection, 30)
-        HrmUtil.commandReadHrm(compositeDisposable, connection)
-        HrmUtil.commandGetHrm(compositeDisposable, connection, object : HrmCallback{
+        minConfidenceLevelDisposable = HrmUtil.commandMinConfidenceLevel(connection, 0)
+        compositeDisposable.add(minConfidenceLevelDisposable)
+
+        hrExpireDurationDisposable = HrmUtil.commandHrExpireDuration(connection, 30)
+        compositeDisposable.add(hrExpireDurationDisposable)
+
+        readHrmDisposable = HrmUtil.commandReadHrm(connection)
+        compositeDisposable.add(readHrmDisposable)
+
+        hrmDisposable = HrmUtil.commandGetHrm(connection, object : HrmCallback{
             override fun originalData(values: ByteArray) {
                 Log.i("Data HRM", values.contentToString())
             }
@@ -104,6 +113,7 @@ class OpticalHrmActivity : BaseActivity() {
             }
 
         })
+        compositeDisposable.add(hrmDisposable)
     }
 
     private fun chartDesign(){
@@ -204,11 +214,16 @@ class OpticalHrmActivity : BaseActivity() {
         when(item.itemId){
             R.id.nav_start -> {
                 isPlay = true
+                connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
+                    this.connection = connection
+                })
+                clearData()
                 doMeasurement()
             }
             R.id.nav_stop -> {
                 isPlay = false
-                MeasurementUtil.commandStop(compositeDisposable, connection)
+
+                stopMeasurement()
             }
             R.id.nav_share -> {
                 toast("Share")
@@ -216,5 +231,28 @@ class OpticalHrmActivity : BaseActivity() {
         }
 
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun clearData(){
+        if(hrm_chart.data != null){
+            hrm_chart.lineData.removeDataSet(ch1)
+            hrm_chart.lineData.removeDataSet(ch2)
+            ch1.clear()
+            ch2.clear()
+            hrm_chart.xAxis.axisMinimum = 0F
+            hrm_chart.xAxis.axisMaximum = 100F
+            hrm_chart.data = null
+            hrm_chart.clear()
+            hrm_chart.invalidate()
+        }
+    }
+
+    private fun stopMeasurement(){
+        MeasurementUtil.commandStop(connection).dispose()
+        connectionDisposable.dispose()
+        minConfidenceLevelDisposable.dispose()
+        hrExpireDurationDisposable.dispose()
+        readHrmDisposable.dispose()
+        hrmDisposable.dispose()
     }
 }
