@@ -1,19 +1,23 @@
 package com.dhealth.bluetooth.data.model
 
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+import com.dhealth.bluetooth.data.constant.AppConstants
 import java.util.*
 
-class Ecg(
-    val sampleCount: Int,
-    val ecg: Int,
-    val eTag: Int,
-    val pTag: Int,
-    val rTor: Int,
-    val currentRToRBpm: Int,
-    val ecgMv: Float,
-    val filteredEcg: Float,
-    var averageRToRBpm: Float,
-    val counterToReport: Float,
-    val timeStamp: Long = System.currentTimeMillis()
+@Entity(tableName = AppConstants.ELECTROCARDIOGRAM)
+data class Ecg(
+    @ColumnInfo(name = "ecg") val ecg: Int,
+    @ColumnInfo(name = "e_tag") val eTag: Int,
+    @ColumnInfo(name = "p_tag") val pTag: Int,
+    @ColumnInfo(name = "r_to_r") val rTor: Int,
+    @ColumnInfo(name = "current_r_to_r") val currentRToRBpm: Int,
+    @ColumnInfo(name = "ecg_mv") val ecgMv: Float,
+    @ColumnInfo(name = "filtered_ecg") val filteredEcg: Float,
+    @ColumnInfo(name = "average_r_to_r") var averageRToRBpm: Float,
+    @ColumnInfo(name = "counter_to_report") val counterToReport: Float,
+    @PrimaryKey @ColumnInfo(name = "id") val id: Long
 ){
     companion object {
         val ecgGain = RegisterField(21, 2, 16)
@@ -49,18 +53,19 @@ class Ecg(
         }
     }
 
-    constructor(i: Int, i2: Int, i3: Int, i4: Int, i5: Int, i6: Int, f: Float, f2: Float, f3: Float,
+    constructor(i2: Int, i3: Int, i4: Int, i5: Int, i6: Int, f: Float, f2: Float, f3: Float,
         i7: Int, i8: Int, isDefault: Boolean) : this(
-        i, i2, i3, i4, i5, i6,
+        i2, i3, i4, i5, i6,
         getEcgMv(i2, i8, f, isDefault),
         if (i8 and 128 !== 0) 0.0f else f2,
         if (i8 and 256 !== 0) 0.0f else f3,
-        (if (i8 and 512 !== 0) 0 else i7).toFloat()
+        (if (i8 and 512 !== 0) 0 else i7).toFloat(),
+        System.currentTimeMillis()
     )
 
     override fun toString(): String {
-        return "SampleCount: $sampleCount, ECG: $ecg, eTag: $eTag, pTag: $pTag, RToR: $rTor, " +
+        return "ECG: $ecg, eTag: $eTag, pTag: $pTag, RToR: $rTor, " +
                 "CurrentRToRBpm: $currentRToRBpm, EcgMV: $ecgMv, FilteredEcg: $filteredEcg, " +
-                "AvgRToRBpm: $averageRToRBpm, CounterToReport: $counterToReport, TimeStamp: $timeStamp"
+                "AvgRToRBpm: $averageRToRBpm, CounterToReport: $counterToReport"
     }
 }

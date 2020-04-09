@@ -13,6 +13,7 @@ import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.data.model.Ecg
 import com.dhealth.bluetooth.util.measurement.*
+import com.dhealth.bluetooth.viewmodel.EcgViewModel
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -26,8 +27,10 @@ import org.koin.android.ext.android.inject
 
 class ElectrocardiogramActivity : BaseActivity() {
 
-    private var bleDevice: BleDevice? = null
     private val compositeDisposable: CompositeDisposable by inject()
+    private val viewModel: EcgViewModel by inject()
+
+    private var bleDevice: BleDevice? = null
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
     private val defaultRegistersDisposable = ArrayList<Disposable>()
@@ -38,6 +41,7 @@ class ElectrocardiogramActivity : BaseActivity() {
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data ECG")
     private var isPlay = false
     private val max = 512F
+    private val ecgs = ArrayList<Ecg>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -63,6 +67,7 @@ class ElectrocardiogramActivity : BaseActivity() {
 
     override fun onDestroy() {
         stopEcg()
+        viewModel.inserts(ecgs)
         super.onDestroy()
     }
 
@@ -93,24 +98,35 @@ class ElectrocardiogramActivity : BaseActivity() {
                     Log.i("Data ECG", values.contentToString())
                 }
 
-                override fun ecgMv(value: Float) {
-                    Log.i("ECG", MeasurementUtil.decimalFormat(value))
+                override fun ecgMonitor(
+                    id: Long,
+                    ecg: Int,
+                    eTag: Int,
+                    pTag: Int,
+                    rTor: Int,
+                    currentRToRBpm: Int,
+                    ecgMv: Float,
+                    filteredEcg: Float,
+                    averageRToRBpm: Float,
+                    counterToReport: Float
+                ) {
+                    Log.i("ECG", MeasurementUtil.decimalFormat(ecgMv))
                     runOnUiThread {
-                        renderDataSet(value);
-                        tv_ecg_mv.text = value.toString()
+                        renderDataSet(ecgMv)
+                        tv_ecg_mv.text = ecgMv.toString()
                     }
-                }
 
-                override fun averageRToR(value: Float) {
-                    Log.i("Average R-to-R", MeasurementUtil.decimalFormat(value))
-                    runOnUiThread { tv_average.text = "${MeasurementUtil.decimalFormat(value)} " +
+                    Log.i("Average R-to-R", MeasurementUtil.decimalFormat(averageRToRBpm))
+                    runOnUiThread { tv_average.text = "${MeasurementUtil.decimalFormat(averageRToRBpm)} " +
                             "${getString(R.string.bpm)}" }
-                }
 
-                override fun currentRToR(value: Int) {
-                    runOnUiThread { tv_current.text = "$value ${getString(R.string.bpm)}" }
-                }
+                    runOnUiThread { tv_current.text = "$currentRToRBpm ${getString(R.string.bpm)}" }
 
+                    ecgs.add(Ecg(
+                        ecg, eTag, pTag, rTor, currentRToRBpm, ecgMv, filteredEcg, averageRToRBpm,
+                        counterToReport, id
+                    ))
+                }
             })
         compositeDisposable.add(ecgDisposable)
     }
@@ -149,9 +165,6 @@ class ElectrocardiogramActivity : BaseActivity() {
             R.id.nav_stop -> {
                 isPlay = false
                 stopEcg()
-            }
-            R.id.nav_share -> {
-                toast("Share")
             }
             R.id.nav_invert -> {
                 toast("Invert")

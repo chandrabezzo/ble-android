@@ -6,7 +6,6 @@ import com.dhealth.bluetooth.data.model.Temperature
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
@@ -15,7 +14,9 @@ import java.util.*
 object TemperatureUtil {
     fun mapper(values: ByteArray): Temperature {
         val wrapper = BitSetWrapper(BitSet.valueOf(values), 8)
-        return Temperature(wrapper.nextInt(8), wrapper.nextSignedInt(15).toFloat() / 100.toFloat())
+        wrapper.nextInt(8)
+        val celcius = wrapper.nextSignedInt(15).toFloat() / 100.toFloat()
+        return Temperature(celcius, temperatureToFahrenheit(celcius), System.currentTimeMillis())
     }
 
     fun temperatureToCelcius(value: Float): Float {
@@ -70,10 +71,8 @@ object TemperatureUtil {
             }.subscribeOn(Schedulers.computation()).observeOn(AndroidSchedulers.mainThread())
             .subscribe({ data ->
                 val temp = mapper(data)
-                val fahrenheit = temperatureToFahrenheit(temp.temperature)
                 callback.originalData(data)
-                callback.temperatureInCelcius(temp.temperature)
-                callback.temperatureInFahrenheit(fahrenheit)
+                callback.temperature(temp.id, temp.inCelcius, temp.inFahrenheit)
             }, {
                 callback.onError(it)
             })
@@ -83,9 +82,7 @@ object TemperatureUtil {
 interface TemperatureCallback {
     fun originalData(values: ByteArray)
 
-    fun temperatureInCelcius(value: Float)
-
-    fun temperatureInFahrenheit(value: Float)
+    fun temperature(id: Long, celcius: Float, fahrenheit: Float)
 
     fun onError(error: Throwable)
 }

@@ -8,6 +8,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,6 +20,7 @@ import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.adapter.BleDeviceRVAdapter
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
+import com.dhealth.bluetooth.ui.measurement.MeasurementResultActivity
 import com.dhealth.bluetooth.util.GpsUtil
 import com.dhealth.bluetooth.util.PermissionUtil
 import com.google.android.material.snackbar.Snackbar
@@ -41,7 +44,16 @@ class ScanActivity : BaseActivity() {
         bluetoothManager.adapter
     }
 
+    override fun onResume() {
+        super.onResume()
+
+        pb_loading.hide()
+        sr_device.show()
+    }
+
     override fun onInitializedView(savedInstanceState: Bundle?) {
+        setSupportActionBar(toolbar)
+
         if(PermissionUtil.requestFineLocationPermission(this)){
             if(bleAdapter.isEnabled){
                 if(!GpsUtil(this).isActive(this)){
@@ -179,5 +191,18 @@ class ScanActivity : BaseActivity() {
     private fun connecting(){
         pb_loading.show()
         sr_device.hide()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.scan_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when(item.itemId) {
+            R.id.nav_history -> launchActivity<MeasurementResultActivity>()
+        }
+
+        return super.onOptionsItemSelected(item)
     }
 }

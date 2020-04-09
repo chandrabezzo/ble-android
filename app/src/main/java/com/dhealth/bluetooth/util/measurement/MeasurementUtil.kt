@@ -11,11 +11,21 @@ import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
 import java.nio.charset.Charset
 import java.text.DecimalFormat
+import java.text.SimpleDateFormat
+import java.util.*
+import kotlin.collections.ArrayList
 
 object MeasurementUtil {
 
     fun decimalFormat(value: Float): String {
         return DecimalFormat("#.00").format(value)
+    }
+
+    fun getDateTime(miliSeconds: Long): String {
+        val formatter = SimpleDateFormat("dd MMMM yyyy hh:mm:ss")
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = miliSeconds
+        return formatter.format(calendar.time)
     }
 
     fun commandGetDeviceInfo(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){

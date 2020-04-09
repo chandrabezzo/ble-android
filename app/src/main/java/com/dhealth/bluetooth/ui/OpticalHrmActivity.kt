@@ -9,14 +9,15 @@ import android.view.WindowManager
 import androidx.annotation.ColorRes
 import androidx.core.content.ContextCompat
 import com.bezzo.core.base.BaseActivity
-import com.bezzo.core.extension.toast
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
+import com.dhealth.bluetooth.data.model.Hrm
 import com.dhealth.bluetooth.util.measurement.HrmCallback
 import com.dhealth.bluetooth.util.measurement.HrmUtil
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
 import com.dhealth.bluetooth.util.measurement.RxBus
+import com.dhealth.bluetooth.viewmodel.HrmViewModel
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
@@ -33,8 +34,10 @@ import kotlin.math.max
 
 class OpticalHrmActivity : BaseActivity() {
 
-    private var bleDevice: BleDevice? = null
     private val compositeDisposable: CompositeDisposable by inject()
+    private val viewModel: HrmViewModel by inject()
+
+    private var bleDevice: BleDevice? = null
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
     private lateinit var hrmDisposable: Disposable
@@ -44,6 +47,7 @@ class OpticalHrmActivity : BaseActivity() {
     private val ch1 =  LineDataSet(ArrayList<Entry>(), "ch1")
     private val ch2 =  LineDataSet(ArrayList<Entry>(), "ch2")
     private var isPlay = false
+    private val hrms = ArrayList<Hrm>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -68,6 +72,7 @@ class OpticalHrmActivity : BaseActivity() {
 
     override fun onDestroy() {
         stopMeasurement()
+        viewModel.inserts(hrms)
         super.onDestroy()
     }
 
@@ -86,32 +91,44 @@ class OpticalHrmActivity : BaseActivity() {
                 Log.i("Data HRM", values.contentToString())
             }
 
-            override fun channel(channel1: Int, channel2: Int) {
+            override fun heartRateMonitor(
+                id: Long,
+                channel1: Int,
+                channel2: Int,
+                heartRate: Int,
+                confidence: Int,
+                activity: String,
+                accelerationX: Float,
+                accelerationY: Float,
+                accelerationZ: Float,
+                spo2: Float
+            ) {
                 Log.i("Channel", "$channel1 & $channel2")
                 runOnUiThread { renderDataSet(channel1.toFloat(), channel2.toFloat()) }
-            }
 
-            override fun heartRate(value: Int) {
-                Log.i("Heart Rate", value.toString())
-                if(value.toString() != tv_heart_rate.text){
-                    runOnUiThread { tv_heart_rate.text = "$value ${getString(R.string.bpm)}" }
+                Log.i("Heart Rate", heartRate.toString())
+                if(heartRate.toString() != tv_heart_rate.text){
+                    runOnUiThread { tv_heart_rate.text = "$heartRate ${getString(R.string.bpm)}" }
+                }
+
+                val confidenceHeartRate = "${confidence} %"
+                Log.i("Heart Rate Confidence", confidenceHeartRate)
+                if(confidenceHeartRate != tv_confident.text){
+                    runOnUiThread { tv_confident.text = confidenceHeartRate }
+                }
+
+                Log.i("Activity", activity)
+                if(activity != tv_activity.text){
+                    runOnUiThread { tv_activity.text = activity }
+                }
+
+                if(confidence >= 90){
+                    hrms.add(Hrm(
+                        channel1, channel2, accelerationX, accelerationY, accelerationZ, heartRate,
+                        confidence, spo2, activity, id
+                    ))
                 }
             }
-
-            override fun heartRateConfidence(value: String) {
-                Log.i("Heart Rate Confidence", value)
-                if(value != tv_confident.text){
-                    runOnUiThread { tv_confident.text = value }
-                }
-            }
-
-            override fun activity(value: String) {
-                Log.i("Activity", value)
-                if(value != tv_activity.text){
-                    runOnUiThread { tv_activity.text = value }
-                }
-            }
-
         })
         compositeDisposable.add(hrmDisposable)
     }
@@ -225,9 +242,6 @@ class OpticalHrmActivity : BaseActivity() {
 
                 stopMeasurement()
             }
-            R.id.nav_share -> {
-                toast("Share")
-            }
         }
 
         return super.onOptionsItemSelected(item)
@@ -248,7 +262,7 @@ class OpticalHrmActivity : BaseActivity() {
     }
 
     private fun stopMeasurement(){
-        MeasurementUtil.commandStop(connection).dispose()
+        MeasurementUtil.commandStop(connection)
         connectionDisposable.dispose()
         minConfidenceLevelDisposable.dispose()
         hrExpireDurationDisposable.dispose()

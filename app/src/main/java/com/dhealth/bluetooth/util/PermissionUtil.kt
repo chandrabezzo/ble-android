@@ -11,8 +11,10 @@ import androidx.core.content.ContextCompat
 import com.dhealth.bluetooth.R
 
 object PermissionUtil {
-    private const val MY_PERMISSIONS_FINE_LOCATION = 129
-    private const val MY_PERMISSIONS_COARSE_LOCATION = 129
+    private const val FINE_LOCATION = 1
+    private const val COARSE_LOCATION = 2
+    private const val READ_STORAGE = 3
+    private const val WRITE_STORAGE = 4
 
     fun requestFineLocationPermission(context: Context): Boolean {
         val currentAPIVersion = Build.VERSION.SDK_INT
@@ -22,9 +24,9 @@ object PermissionUtil {
                 if (ActivityCompat.shouldShowRequestPermissionRationale(context as Activity, permission)) {
                     showAlertDialog(context, context.getString(R.string.title_permission),
                         String.format(context.getString(R.string.content_permission), "lokasi"),
-                        arrayOf(permission), MY_PERMISSIONS_FINE_LOCATION)
+                        arrayOf(permission), FINE_LOCATION)
                 } else {
-                    requestPermission(context, arrayOf(permission), MY_PERMISSIONS_FINE_LOCATION)
+                    requestPermission(context, arrayOf(permission), FINE_LOCATION)
                 }
                 false
             } else {
@@ -39,17 +41,59 @@ object PermissionUtil {
         val currentAPIVersion = Build.VERSION.SDK_INT
         val permission = Manifest.permission.ACCESS_COARSE_LOCATION
         if (currentAPIVersion >= android.os.Build.VERSION_CODES.M) {
-            if (isNotGranted(context, permission)) {
+            return if (isNotGranted(context, permission)) {
                 if (ActivityCompat.shouldShowRequestPermissionRationale(context as Activity, permission)) {
                     showAlertDialog(context, context.getString(R.string.title_permission),
-                            String.format(context.getString(R.string.content_permission), "lokasi"),
-                            arrayOf(permission), MY_PERMISSIONS_COARSE_LOCATION)
+                        String.format(context.getString(R.string.content_permission), "lokasi"),
+                        arrayOf(permission), COARSE_LOCATION)
                 } else {
-                    requestPermission(context, arrayOf(permission), MY_PERMISSIONS_COARSE_LOCATION)
+                    requestPermission(context, arrayOf(permission), COARSE_LOCATION)
                 }
-                return false
+                false
             } else {
-                return true
+                true
+            }
+        } else {
+            return true
+        }
+    }
+
+    fun requestWriteStorage(context: Context): Boolean {
+        val currentAPIVersion = Build.VERSION.SDK_INT
+        val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+        if (currentAPIVersion >= Build.VERSION_CODES.M) {
+            return if (isNotGranted(context, permission)) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(context as Activity, permission)) {
+                    showAlertDialog(context, context.getString(R.string.title_permission),
+                        String.format(context.getString(R.string.content_permission), "penyimpanan file"),
+                        arrayOf(permission), WRITE_STORAGE)
+                } else {
+                    requestPermission(context, arrayOf(permission), WRITE_STORAGE)
+                }
+                false
+            } else {
+                true
+            }
+        } else {
+            return true
+        }
+    }
+
+    fun requestReadStorage(context: Context): Boolean {
+        val currentAPIVersion = Build.VERSION.SDK_INT
+        val permission = Manifest.permission.READ_EXTERNAL_STORAGE
+        if (currentAPIVersion >= Build.VERSION_CODES.M) {
+            return if (isNotGranted(context, permission)) {
+                if (ActivityCompat.shouldShowRequestPermissionRationale(context as Activity, permission)) {
+                    showAlertDialog(context, context.getString(R.string.title_permission),
+                        String.format(context.getString(R.string.content_permission), "penyimpanan file"),
+                        arrayOf(permission), READ_STORAGE)
+                } else {
+                    requestPermission(context, arrayOf(permission), READ_STORAGE)
+                }
+                false
+            } else {
+                true
             }
         } else {
             return true

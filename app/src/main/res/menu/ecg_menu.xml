@@ -15,12 +15,6 @@
         app:showAsAction="always"/>
 
     <item
-        android:id="@+id/nav_share"
-        android:title="@string/share"
-        android:icon="@drawable/ic_share"
-        app:showAsAction="always"/>
-
-    <item
         android:id="@+id/nav_invert"
         android:title="@string/invert_ecg"
         app:showAsAction="always"

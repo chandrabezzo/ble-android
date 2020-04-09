@@ -7,15 +7,16 @@ import android.view.MenuItem
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.bezzo.core.base.BaseActivity
-import com.bezzo.core.extension.toast
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
+import com.dhealth.bluetooth.data.model.Temperature
 import com.dhealth.bluetooth.util.TemperatureValueFormatter
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
 import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.util.measurement.TemperatureCallback
 import com.dhealth.bluetooth.util.measurement.TemperatureUtil
+import com.dhealth.bluetooth.viewmodel.TemperatureViewModel
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -30,8 +31,10 @@ import org.koin.android.ext.android.inject
 
 class TemperatureActivity : BaseActivity() {
 
-    private var bleDevice: BleDevice? = null
     private val compositeDisposable: CompositeDisposable by inject()
+    private val viewModel: TemperatureViewModel by inject()
+
+    private var bleDevice: BleDevice? = null
     private lateinit var connection: Observable<RxBleConnection>
     private lateinit var connectionDisposable: Disposable
     private lateinit var intervalDisposable: Disposable
@@ -40,6 +43,7 @@ class TemperatureActivity : BaseActivity() {
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data Temperature")
     private var isCelcius = true
     private var isPlay = false
+    private val temps = ArrayList<Temperature>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
@@ -92,6 +96,7 @@ class TemperatureActivity : BaseActivity() {
 
     override fun onDestroy() {
         stopTemperature()
+        viewModel.inserts(temps)
         super.onDestroy()
     }
 
@@ -167,27 +172,27 @@ class TemperatureActivity : BaseActivity() {
                 Log.i("Data Notification", values.contentToString())
             }
 
-            override fun temperatureInCelcius(value: Float) {
-                Log.i("Suhu", MeasurementUtil.decimalFormat(value))
+            override fun temperature(id: Long, celcius: Float, fahrenheit: Float) {
+                Log.i("Suhu", MeasurementUtil.decimalFormat(celcius))
                 if(isCelcius) {
                     runOnUiThread {
-                        renderDataSet(value)
-                        val suhu = MeasurementUtil.decimalFormat(value)
+                        renderDataSet(celcius)
+                        val suhu = MeasurementUtil.decimalFormat(celcius)
                         tv_celcius.text = "$suhu ${getString(R.string.derajat_celcius)}"
                     }
                 }
-            }
 
-            override fun temperatureInFahrenheit(value: Float) {
-                Log.i("Suhu Fahrenheit", MeasurementUtil.decimalFormat(value))
+                Log.i("Suhu Fahrenheit", MeasurementUtil.decimalFormat(fahrenheit))
                 if(!isCelcius){
                     runOnUiThread {
-                        renderDataSet(value)
+                        renderDataSet(fahrenheit)
                     }
                 }
 
-                val suhu = MeasurementUtil.decimalFormat(value)
+                val suhu = MeasurementUtil.decimalFormat(fahrenheit)
                 tv_fahrenheit.text = "$suhu ${getString(R.string.derajat_fahrenheit)}"
+
+                temps.add(Temperature(celcius, fahrenheit, id))
             }
 
             override fun onError(error: Throwable) {
@@ -230,9 +235,6 @@ class TemperatureActivity : BaseActivity() {
                 isPlay = false
                 stopTemperature()
             }
-            R.id.nav_share -> {
-                toast("Share")
-            }
         }
 
         return super.onOptionsItemSelected(item)
@@ -251,7 +253,7 @@ class TemperatureActivity : BaseActivity() {
     }
 
     private fun stopTemperature(){
-        MeasurementUtil.commandStop(connection).dispose()
+        MeasurementUtil.commandStop(connection)
         connectionDisposable.dispose()
         intervalDisposable.dispose()
         readTempDisposable.dispose()

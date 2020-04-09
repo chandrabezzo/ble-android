@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <uses-feature
         android:name="android.hardware.bluetooth_le"
@@ -16,10 +18,12 @@
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ui.OpticalHrmActivity"></activity>
+        <activity android:name=".ui.measurement.MeasurementResultActivity"></activity>
+        <activity android:name=".ui.OpticalHrmActivity" />
         <activity android:name=".ui.ElectrocardiogramActivity" />
         <activity android:name=".ui.ActionActivity" />
         <activity android:name=".ui.ScanActivity">
@@ -29,9 +33,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".ui.TemperatureActivity"
-            android:screenOrientation="fullSensor">
-        </activity>
+        <activity
+            android:name=".ui.TemperatureActivity"
+            android:screenOrientation="fullSensor"></activity>
     </application>
 
 </manifest>

@@ -22,10 +22,9 @@ object EcgUtil {
         val ecgs = arrayOfNulls<Ecg>(4)
         var i = 0
         while (i < ecgs.size) {
-            val i2 = next1 + i
+            next1 + i // sample count
             val next4 = wrapper.nextInt(3)
             val ecg = Ecg(
-                i2,
                 wrapper.nextSignedInt(17),
                 wrapper.nextInt(3),
                 next4,
@@ -57,9 +56,10 @@ object EcgUtil {
                     }
 
                     ecg?.averageRToRBpm = movingAverage.getAverage()
-                    ecg?.ecgMv?.let { ecgMv -> callback.ecgMv(ecgMv) }
-                    ecg?.averageRToRBpm?.let { average -> callback.averageRToR(average) }
-                    ecg?.currentRToRBpm?.let { current -> callback.currentRToR(current) }
+                    ecg?.let {
+                        callback.ecgMonitor(it.id, it.ecg, it.eTag, it.pTag, it.rTor, it.currentRToRBpm,
+                            it.ecgMv, it.filteredEcg, it.averageRToRBpm, it.counterToReport)
+                    }
                 }
             }, {
                 Log.e("Error ECG", it.localizedMessage)
@@ -138,9 +138,6 @@ object EcgUtil {
 interface EcgCallback {
     fun originalData(values: ByteArray)
 
-    fun ecgMv(value: Float)
-
-    fun averageRToR(value: Float)
-
-    fun currentRToR(value: Int)
+    fun ecgMonitor(id: Long, ecg: Int, eTag: Int, pTag: Int, rTor: Int, currentRToRBpm: Int, ecgMv: Float,
+        filteredEcg: Float, averageRToRBpm: Float, counterToReport: Float)
 }

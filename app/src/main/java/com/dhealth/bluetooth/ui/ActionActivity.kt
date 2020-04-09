@@ -6,6 +6,8 @@ import com.bezzo.core.extension.launchActivity
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.data.constant.Extras
 import com.dhealth.bluetooth.data.model.BleDevice
+import com.dhealth.bluetooth.ui.measurement.MeasurementResultActivity
+import com.dhealth.bluetooth.util.PermissionUtil
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
 import com.dhealth.bluetooth.util.measurement.RxBus
 import com.jakewharton.rx.ReplayingShare
@@ -34,25 +36,29 @@ class ActionActivity : BaseActivity() {
         MeasurementUtil.commandSetStreamTypeToBin(compositeDisposable, connection)
 
         cv_electrocardiogram.setOnClickListener {
-            RxBus.publish(connection)
-            launchActivity<ElectrocardiogramActivity> {
-                putExtra(Extras.BLE_DEVICE, bleDevice)
+            if(isPermissionGranted()){
+                RxBus.publish(connection)
+                launchActivity<ElectrocardiogramActivity> {
+                    putExtra(Extras.BLE_DEVICE, bleDevice)
+                }
             }
         }
 
         cv_optical_hrm.setOnClickListener {
-            RxBus.publish(connection)
-
-            launchActivity<OpticalHrmActivity> {
-                putExtra(Extras.BLE_DEVICE, bleDevice)
+            if(isPermissionGranted()){
+                RxBus.publish(connection)
+                launchActivity<OpticalHrmActivity> {
+                    putExtra(Extras.BLE_DEVICE, bleDevice)
+                }
             }
         }
 
         cv_temperature.setOnClickListener {
-            RxBus.publish(connection)
-
-            launchActivity<TemperatureActivity> {
-                putExtra(Extras.BLE_DEVICE, bleDevice)
+            if(isPermissionGranted()){
+                RxBus.publish(connection)
+                launchActivity<TemperatureActivity> {
+                    putExtra(Extras.BLE_DEVICE, bleDevice)
+                }
             }
         }
     }
@@ -64,5 +70,9 @@ class ActionActivity : BaseActivity() {
     override fun onDestroy() {
         compositeDisposable.dispose()
         super.onDestroy()
+    }
+
+    private fun isPermissionGranted(): Boolean {
+        return PermissionUtil.requestWriteStorage(this) and PermissionUtil.requestReadStorage(this)
     }
 }

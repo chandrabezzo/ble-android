@@ -6,7 +6,6 @@ import com.dhealth.bluetooth.data.model.Hrm
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
@@ -16,8 +15,8 @@ object HrmUtil {
 
     fun mapper(values: ByteArray): Hrm {
         val wrapper = BitSetWrapper(BitSet.valueOf(values), 8)
+        wrapper.nextInt(16) // sample count
         return Hrm(
-            wrapper.nextInt(16),
             wrapper.nextInt(20),
             wrapper.nextInt(20),
             wrapper.nextSignedInt(13).toFloat() / 1000.0f,
@@ -26,7 +25,9 @@ object HrmUtil {
             wrapper.nextInt(12),
             wrapper.nextInt(8),
             wrapper.nextInt(11).toFloat() / 10.0f,
-            wrapper.nextInt(8))
+            hrmActivity(wrapper.nextInt(8)),
+            System.currentTimeMillis()
+        )
     }
 
     fun hrmActivity(activityCode: Int): String {
@@ -95,10 +96,9 @@ object HrmUtil {
             .subscribe({ data ->
                 val hrm = mapper(data)
                 callback.originalData(data)
-                callback.channel(hrm.green1Count, hrm.green2Count)
-                callback.heartRate(hrm.heartRate)
-                callback.heartRateConfidence("${hrm.heartRateConfidence}%")
-                callback.activity(hrmActivity(hrm.activityCode))
+                callback.heartRateMonitor(hrm.id, hrm.green1Count, hrm.green2Count, hrm.heartRate,
+                    hrm.confidence, hrm.activity, hrm.accelerationX,
+                    hrm.accelerationY, hrm.accelerationZ, hrm.spo2)
             }, {
                 Log.e("Error Get HRM", it.localizedMessage)
             })
@@ -108,11 +108,7 @@ object HrmUtil {
 interface HrmCallback {
     fun originalData(values: ByteArray)
 
-    fun channel(channel1: Int, channel2: Int)
-
-    fun heartRate(value: Int)
-
-    fun heartRateConfidence(value: String)
-
-    fun activity(value: String)
+    fun heartRateMonitor(id: Long, channel1: Int, channel2: Int, heartRate: Int, confidence: Int,
+                         activity: String, accelerationX: Float, accelerationY: Float,
+                         accelerationZ: Float, spo2: Float)
 }
