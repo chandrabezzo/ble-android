@@ -10,6 +10,8 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.*
 
 object EcgUtil {
@@ -38,6 +40,26 @@ object EcgUtil {
         }
 
         return ecgs
+    }
+
+    fun ecgToJson(ecgs: MutableList<Ecg>): JSONArray {
+        val jsonArray = JSONArray()
+
+        for(ecg in ecgs){
+            val json = JSONObject()
+            json.put("ecg", ecg.ecg)
+            json.put("e_tag", ecg.eTag)
+            json.put("p_tag", ecg.pTag)
+            json.put("r_to_r", ecg.rTor)
+            json.put("current_to_r", ecg.currentRToRBpm)
+            json.put("ecg_mv", ecg.ecgMv)
+            json.put("filtered_ecg", ecg.filteredEcg)
+            json.put("average_to_r", ecg.averageRToRBpm)
+            json.put("counter_to_report", ecg.counterToReport)
+            jsonArray.put(json)
+        }
+
+        return jsonArray
     }
 
     fun commandGetEcg(connection: Observable<RxBleConnection>, isDefault: Boolean,

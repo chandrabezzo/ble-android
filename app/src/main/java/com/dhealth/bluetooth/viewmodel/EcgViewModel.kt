@@ -1,13 +1,20 @@
 package com.dhealth.bluetooth.viewmodel
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagedList
 import com.bezzo.core.base.BaseViewModel
 import com.dhealth.bluetooth.data.local.LocalStorage
 import com.dhealth.bluetooth.data.model.Ecg
 import com.dhealth.bluetooth.data.repository.EcgRepository
+import com.dhealth.bluetooth.util.Loading
+import com.dhealth.bluetooth.util.Saved
+import com.dhealth.bluetooth.util.ShareState
+import com.dhealth.bluetooth.util.StorageUtil
+import com.dhealth.bluetooth.util.measurement.EcgUtil
 import kotlinx.coroutines.launch
 
 class EcgViewModel(application: Application): BaseViewModel(application) {
@@ -26,4 +33,18 @@ class EcgViewModel(application: Application): BaseViewModel(application) {
     fun add(ecg: Ecg) = viewModelScope.launch { repository.insert(ecg) }
 
     fun inserts(values: ArrayList<Ecg>) = viewModelScope.launch { repository.inserts(values) }
+
+    private fun saveEcg(context: Context) = viewModelScope.launch {
+        StorageUtil.saveEcg(context, EcgUtil.ecgToJson(repository.allEcg()))
+    }
+
+    fun share(context: Context): LiveData<ShareState> {
+        val state = MutableLiveData<ShareState>()
+        state.postValue(Loading)
+        if(!saveEcg(context).start()){
+            state.postValue(Saved)
+        }
+
+        return state
+    }
 }

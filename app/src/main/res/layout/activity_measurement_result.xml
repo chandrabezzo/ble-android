@@ -7,10 +7,20 @@
     android:layout_height="match_parent"
     tools:context=".ui.measurement.MeasurementResultActivity">
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:title="@string/measurements"
+        app:titleTextColor="@color/white"
+        android:background="@color/colorPrimary"
+        android:layout_alignParentTop="true"/>
+
     <FrameLayout
         android:id="@+id/fl_measurement_result"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_below="@id/toolbar"
         android:layout_above="@id/bnv_measurement_result"/>
 
     <com.google.android.material.bottomnavigation.BottomNavigationView

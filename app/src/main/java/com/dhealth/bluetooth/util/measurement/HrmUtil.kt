@@ -9,6 +9,8 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.*
 
 object HrmUtil {
@@ -40,6 +42,28 @@ object HrmUtil {
             5 -> "OTHER RHYTHMIC"
             else -> "--"
         }
+    }
+
+    fun hrmToJson(hrms: MutableList<Hrm>): JSONArray {
+        val jsonArray = JSONArray()
+
+        for(hrm in hrms){
+            val json = JSONObject()
+            json.put("id", hrm.id)
+            json.put("acceleration_x", hrm.accelerationX)
+            json.put("acceleration_y", hrm.accelerationY)
+            json.put("acceleration_z", hrm.accelerationZ)
+            json.put("ch1", hrm.green1Count)
+            json.put("ch2", hrm.green2Count)
+            json.put("activity", hrm.activity)
+            json.put("confidence", hrm.confidence)
+            json.put("heart_rate", hrm.heartRate)
+            json.put("spo2", hrm.spo2)
+
+            jsonArray.put(json)
+        }
+
+        return jsonArray
     }
 
     fun commandMinConfidenceLevel(connection: Observable<RxBleConnection>,

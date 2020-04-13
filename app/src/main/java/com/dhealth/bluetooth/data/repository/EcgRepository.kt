@@ -13,6 +13,10 @@ class EcgRepository(private val dao: EcgDao) {
             20).build()
     }
 
+    suspend fun allEcg(): MutableList<Ecg> {
+        return dao.allEcg()
+    }
+
     fun get(id: Long): Flow<Ecg> {
         return dao.get(id)
     }

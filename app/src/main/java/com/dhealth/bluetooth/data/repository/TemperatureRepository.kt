@@ -6,11 +6,20 @@ import androidx.paging.PagedList
 import com.dhealth.bluetooth.data.local.dao.TemperatureDao
 import com.dhealth.bluetooth.data.model.Temperature
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.observeOn
+import kotlinx.coroutines.flow.toList
 
 class TemperatureRepository(private val dao: TemperatureDao) {
+
+
     fun getAll(): LiveData<PagedList<Temperature>> {
         return LivePagedListBuilder(dao.getAll(),
             20).build()
+    }
+
+    suspend fun allTemperature(): MutableList<Temperature> {
+        return dao.allTemperature()
     }
 
     fun get(id: Long): Flow<Temperature> {

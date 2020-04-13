@@ -14,6 +14,10 @@ interface TemperatureDao {
     fun getAll(): DataSource.Factory<Int, Temperature>
 
     @WorkerThread
+    @Query("SELECT * FROM ${AppConstants.TEMPERATURE}")
+    suspend fun allTemperature(): MutableList<Temperature>
+
+    @WorkerThread
     @Query("SELECT * FROM ${AppConstants.TEMPERATURE} WHERE id=:id")
     fun get(id: Long): Flow<Temperature>
 

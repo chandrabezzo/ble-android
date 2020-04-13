@@ -13,6 +13,10 @@ class HrmRepository(private val dao: HrmDao) {
             20).build()
     }
 
+    suspend fun allHrm(): MutableList<Hrm> {
+        return dao.allHrm()
+    }
+
     fun get(id: Long): Flow<Hrm> {
         return dao.get(id)
     }

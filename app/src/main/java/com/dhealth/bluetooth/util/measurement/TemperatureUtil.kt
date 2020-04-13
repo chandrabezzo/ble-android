@@ -9,6 +9,8 @@ import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.rxkotlin.toObservable
 import io.reactivex.schedulers.Schedulers
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.*
 
 object TemperatureUtil {
@@ -25,6 +27,21 @@ object TemperatureUtil {
 
     fun temperatureToFahrenheit(value: Float): Float {
         return value * 1.8f + 32.toFloat()
+    }
+
+    fun temperatureToJson(temperatures: MutableList<Temperature>): JSONArray {
+        val jsonArray = JSONArray()
+
+        for(temperature in temperatures){
+            val json = JSONObject()
+            json.put("id", Calendar.getInstance().timeInMillis)
+            json.put("celcius", temperature.inCelcius)
+            json.put("fahrenheit", temperature.inFahrenheit)
+
+            jsonArray.put(json)
+        }
+
+        return jsonArray
     }
 
     fun commandInterval(connection: Observable<RxBleConnection>, interval: Int): Disposable {

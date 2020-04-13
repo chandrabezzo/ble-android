@@ -8,6 +8,7 @@ import kotlinx.android.synthetic.main.activity_measurement_result.*
 
 class MeasurementResultActivity : BaseActivity() {
     override fun onInitializedView(savedInstanceState: Bundle?) {
+        setSupportActionBar(toolbar)
 
         launchFragment(R.id.fl_measurement_result, TemperatureMeasurementFragment::class.java)
 

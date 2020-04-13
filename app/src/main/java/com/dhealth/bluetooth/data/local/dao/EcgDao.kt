@@ -14,6 +14,10 @@ interface EcgDao {
     fun getAll(): DataSource.Factory<Int, Ecg>
 
     @WorkerThread
+    @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM}")
+    suspend fun allEcg(): MutableList<Ecg>
+
+    @WorkerThread
     @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM} WHERE id=:id")
     fun get(id: Long): Flow<Ecg>
 

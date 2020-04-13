@@ -14,6 +14,10 @@ interface HrmDao {
     fun getAll(): DataSource.Factory<Int, Hrm>
 
     @WorkerThread
+    @Query("SELECT * FROM ${AppConstants.HEART_RATE}")
+    suspend fun allHrm(): MutableList<Hrm>
+
+    @WorkerThread
     @Query("SELECT * FROM ${AppConstants.HEART_RATE} WHERE id=:id")
     fun get(id: Long): Flow<Hrm>
 

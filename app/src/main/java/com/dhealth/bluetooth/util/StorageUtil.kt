@@ -2,15 +2,16 @@ package com.dhealth.bluetooth.util
 
 import android.content.Context
 import android.os.Environment
-import com.dhealth.bluetooth.data.model.Temperature
 import org.json.JSONArray
-import org.json.JSONObject
-import java.io.*
-import java.util.*
-import kotlin.collections.ArrayList
+import java.io.BufferedWriter
+import java.io.File
+import java.io.FileWriter
 
 object StorageUtil {
-    const val temperatureName = "temperature.json"
+    private const val temperatureName = "temperature.json"
+    private const val hrmName = "heart_rate_monitoring.json"
+    private const val ecgName = "ecg_monitoring.json"
+    private const val measurementsFolder = "measurements"
 
     fun isExternalStorageWritable(): Boolean {
         return Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
@@ -21,41 +22,42 @@ object StorageUtil {
                 setOf(Environment.MEDIA_MOUNTED, Environment.MEDIA_MOUNTED_READ_ONLY)
     }
 
-    fun temperatureToJson(temperatures: ArrayList<Temperature>): JSONArray {
-        val jsonArray = JSONArray()
-
-        for(temperature in temperatures){
-            val json = JSONObject()
-            json.put("time", Calendar.getInstance().timeInMillis)
-            json.put("celcius", temperature.inCelcius)
-            json.put("fahrenheit", temperature.inFahrenheit)
-
-            jsonArray.put(json.toString())
-        }
-
-        return jsonArray
-    }
-
     fun saveTemperature(context: Context, temperature: JSONArray){
-        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
-            "${Calendar.getInstance().timeInMillis} - $temperatureName")
+        val file = File(context.getExternalFilesDir(measurementsFolder),
+            temperatureName)
         val fileWriter = FileWriter(file)
         val bufferedWriter = BufferedWriter(fileWriter)
         bufferedWriter.write(temperature.toString())
         bufferedWriter.close()
     }
 
-    fun readTemperature(context: Context): JSONObject {
-        val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), temperatureName)
-        val fileReader = FileReader(file)
-        val bufferedReader = BufferedReader(fileReader)
-        val stringBuilder = StringBuilder()
-        var line = bufferedReader.readLine()
-        while (line != null){
-            stringBuilder.append(line).append("\n")
-            line = bufferedReader.readLine()
-        }
-        bufferedReader.close()
-        return JSONObject(stringBuilder.toString())
+    fun readTemperature(context: Context): File {
+        return File(context.getExternalFilesDir(measurementsFolder), temperatureName)
+    }
+
+    fun saveHrm(context: Context, hrms: JSONArray){
+        val file = File(context.getExternalFilesDir(measurementsFolder),
+            hrmName)
+        val fileWriter = FileWriter(file)
+        val bufferedWriter = BufferedWriter(fileWriter)
+        bufferedWriter.write(hrms.toString())
+        bufferedWriter.close()
+    }
+
+    fun readHrm(context: Context): File {
+        return File(context.getExternalFilesDir(measurementsFolder), hrmName)
+    }
+
+    fun saveEcg(context: Context, ecgs: JSONArray){
+        val file = File(context.getExternalFilesDir(measurementsFolder),
+            ecgName)
+        val fileWriter = FileWriter(file)
+        val bufferedWriter = BufferedWriter(fileWriter)
+        bufferedWriter.write(ecgs.toString())
+        bufferedWriter.close()
+    }
+
+    fun readEcg(context: Context): File {
+        return File(context.getExternalFilesDir(measurementsFolder), ecgName)
     }
 }
