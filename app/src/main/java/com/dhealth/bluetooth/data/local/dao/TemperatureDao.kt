@@ -18,6 +18,10 @@ interface TemperatureDao {
     suspend fun allTemperature(): MutableList<Temperature>
 
     @WorkerThread
+    @Query("SELECT * FROM ${AppConstants.TEMPERATURE} WHERE has_sync = 0")
+    fun getNotSynced(): Flow<MutableList<Temperature>>
+
+    @WorkerThread
     @Query("SELECT * FROM ${AppConstants.TEMPERATURE} WHERE id=:id")
     fun get(id: Long): Flow<Temperature>
 
@@ -26,6 +30,9 @@ interface TemperatureDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserts(temperatures: MutableList<Temperature>)
+
+    @Update
+    suspend fun update(temperature: Temperature)
 
     @Query("DELETE FROM ${AppConstants.TEMPERATURE}")
     suspend fun deleteAll()

@@ -35,11 +35,11 @@ class TemperatureActivity : BaseActivity() {
     private val viewModel: TemperatureViewModel by inject()
 
     private var bleDevice: BleDevice? = null
-    private lateinit var connection: Observable<RxBleConnection>
-    private lateinit var connectionDisposable: Disposable
-    private lateinit var intervalDisposable: Disposable
-    private lateinit var readTempDisposable: Disposable
-    private lateinit var temperatureDisposable: Disposable
+    private var connection: Observable<RxBleConnection>? = null
+    private var connectionDisposable: Disposable? = null
+    private var intervalDisposable: Disposable? = null
+    private var readTempDisposable: Disposable? = null
+    private var temperatureDisposable: Disposable? = null
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data Temperature")
     private var isCelcius = true
     private var isPlay = false
@@ -161,45 +161,47 @@ class TemperatureActivity : BaseActivity() {
     }
 
     private fun doMeasurement(){
-        intervalDisposable = TemperatureUtil.commandInterval(connection, 500)
-        compositeDisposable.add(intervalDisposable)
+        connection?.let {
+            intervalDisposable = TemperatureUtil.commandInterval(it, 1000)
+            compositeDisposable.add(intervalDisposable!!)
 
-        readTempDisposable = TemperatureUtil.commandReadTemp(connection)
-        compositeDisposable.add(readTempDisposable)
+            readTempDisposable = TemperatureUtil.commandReadTemp(it)
+            compositeDisposable.add(readTempDisposable!!)
 
-        temperatureDisposable = TemperatureUtil.commandGetTemperature(connection, object : TemperatureCallback {
-            override fun originalData(values: ByteArray) {
-                Log.i("Data Notification", values.contentToString())
-            }
-
-            override fun temperature(id: Long, celcius: Float, fahrenheit: Float) {
-                Log.i("Suhu", MeasurementUtil.decimalFormat(celcius))
-                if(isCelcius) {
-                    runOnUiThread {
-                        renderDataSet(celcius)
-                        val suhu = MeasurementUtil.decimalFormat(celcius)
-                        tv_celcius.text = "$suhu ${getString(R.string.derajat_celcius)}"
-                    }
+            temperatureDisposable = TemperatureUtil.commandGetTemperature(it, object : TemperatureCallback {
+                override fun originalData(values: ByteArray) {
+                    Log.i("Data Notification", values.contentToString())
                 }
 
-                Log.i("Suhu Fahrenheit", MeasurementUtil.decimalFormat(fahrenheit))
-                if(!isCelcius){
-                    runOnUiThread {
-                        renderDataSet(fahrenheit)
+                override fun temperature(id: Long, celcius: Float, fahrenheit: Float) {
+                    Log.i("Suhu", MeasurementUtil.decimalFormat(celcius))
+                    temps.add(Temperature(celcius, fahrenheit, MeasurementUtil.getEpoch()))
+
+                    if(isCelcius) {
+                        runOnUiThread {
+                            renderDataSet(celcius)
+                            val suhu = MeasurementUtil.decimalFormat(celcius)
+                            tv_celcius.text = "$suhu ${getString(R.string.derajat_celcius)}"
+                        }
                     }
+
+                    Log.i("Suhu Fahrenheit", MeasurementUtil.decimalFormat(fahrenheit))
+                    if(!isCelcius){
+                        runOnUiThread {
+                            renderDataSet(fahrenheit)
+                        }
+                    }
+
+                    val suhu = MeasurementUtil.decimalFormat(fahrenheit)
+                    tv_fahrenheit.text = "$suhu ${getString(R.string.derajat_fahrenheit)}"
                 }
 
-                val suhu = MeasurementUtil.decimalFormat(fahrenheit)
-                tv_fahrenheit.text = "$suhu ${getString(R.string.derajat_fahrenheit)}"
-
-                temps.add(Temperature(celcius, fahrenheit, id))
-            }
-
-            override fun onError(error: Throwable) {
-                Log.e("Error Notification", error.localizedMessage)
-            }
-        })
-        compositeDisposable.add(temperatureDisposable)
+                override fun onError(error: Throwable) {
+                    Log.e("Error Notification", error.localizedMessage)
+                }
+            })
+            compositeDisposable.add(temperatureDisposable!!)
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -253,10 +255,10 @@ class TemperatureActivity : BaseActivity() {
     }
 
     private fun stopTemperature(){
-        MeasurementUtil.commandStop(connection)
-        connectionDisposable.dispose()
-        intervalDisposable.dispose()
-        readTempDisposable.dispose()
-        temperatureDisposable.dispose()
+        connection?.let { MeasurementUtil.commandStop(it) }
+        connectionDisposable?.dispose()
+        intervalDisposable?.dispose()
+        readTempDisposable?.dispose()
+        temperatureDisposable?.dispose()
     }
 }

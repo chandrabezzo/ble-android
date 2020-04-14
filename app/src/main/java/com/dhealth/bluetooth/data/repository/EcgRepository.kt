@@ -17,6 +17,10 @@ class EcgRepository(private val dao: EcgDao) {
         return dao.allEcg()
     }
 
+    fun getNotSynced(): Flow<MutableList<Ecg>> {
+        return dao.getNotSynced()
+    }
+
     fun get(id: Long): Flow<Ecg> {
         return dao.get(id)
     }
@@ -27,6 +31,10 @@ class EcgRepository(private val dao: EcgDao) {
 
     suspend fun inserts(values: ArrayList<Ecg>){
         dao.inserts(values)
+    }
+
+    suspend fun update(ecg: Ecg){
+        dao.update(ecg)
     }
 
     suspend fun delete(ecg: Ecg){

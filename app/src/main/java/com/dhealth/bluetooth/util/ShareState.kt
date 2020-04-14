@@ -2,5 +2,5 @@ package com.dhealth.bluetooth.util
 
 sealed class ShareState
 
-object Loading: ShareState()
+object Prepare: ShareState()
 object Saved : ShareState()

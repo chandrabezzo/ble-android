@@ -1,5 +1,6 @@
 package com.dhealth.bluetooth.ui.measurement
 
+import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.*
@@ -12,10 +13,11 @@ import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.adapter.EcgMeasurementRVAdapter
 import com.dhealth.bluetooth.data.model.Ecg
 import com.dhealth.bluetooth.ui.Progress
-import com.dhealth.bluetooth.util.Loading
+import com.dhealth.bluetooth.util.Prepare
 import com.dhealth.bluetooth.util.Saved
 import com.dhealth.bluetooth.util.ShareState
 import com.dhealth.bluetooth.util.StorageUtil
+import com.dhealth.bluetooth.util.measurement.EcgUtil
 import com.dhealth.bluetooth.viewmodel.EcgViewModel
 import kotlinx.android.synthetic.main.fragment_ecg_measurement.*
 import org.koin.android.ext.android.inject
@@ -24,9 +26,12 @@ class EcgMeasurementFragment : BaseFragment() {
 
     private val adapter: EcgMeasurementRVAdapter by inject()
     private val viewModel: EcgViewModel by inject()
+    private lateinit var syncDialog: Dialog
 
     override fun onViewInitialized(savedInstanceState: Bundle?) {
-
+        context?.let { context ->
+            syncDialog = Progress.dialog(context, getString(R.string.sync_data))
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -52,7 +57,7 @@ class EcgMeasurementFragment : BaseFragment() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.share_menu, menu)
+        inflater.inflate(R.menu.measurement_result_menu, menu)
         super.onCreateOptionsMenu(menu, inflater)
     }
 
@@ -63,6 +68,10 @@ class EcgMeasurementFragment : BaseFragment() {
                     viewModel.share(context).observe(this, sharingMeasurement)
                 }
             }
+            R.id.nav_sync -> {
+                syncDialog.show()
+                viewModel.sync().observe(this, syncEcg)
+            }
         }
 
         return true
@@ -72,7 +81,7 @@ class EcgMeasurementFragment : BaseFragment() {
         context?.let { context ->
             val progressDialog = Progress.dialog(context, "Mempersiapkan Data...")
             when(state){
-                Loading -> progressDialog.show()
+                Prepare -> progressDialog.show()
                 Saved -> {
                     progressDialog.dismiss()
                     val ecgFile = FileProvider.getUriForFile(context,
@@ -87,5 +96,14 @@ class EcgMeasurementFragment : BaseFragment() {
                 }
             }
         }
+    }
+
+    private val syncEcg = Observer<MutableList<Ecg>> {
+        for(ecg in it){
+            val parseObject = EcgUtil.ecgToParseObject(ecg)
+            parseObject.saveInBackground()
+            viewModel.synced(ecg)
+        }
+        syncDialog.dismiss()
     }
 }

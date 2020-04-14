@@ -1,5 +1,6 @@
 package com.dhealth.bluetooth.ui.measurement
 
+import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.Menu
@@ -10,16 +11,17 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.Observer
 import androidx.paging.PagedList
 import com.bezzo.core.base.BaseFragment
-import com.bezzo.core.extension.toast
 import com.dhealth.bluetooth.R
 import com.dhealth.bluetooth.adapter.TempMeasurementRVAdapter
 import com.dhealth.bluetooth.data.model.Temperature
 import com.dhealth.bluetooth.ui.Progress
-import com.dhealth.bluetooth.util.Loading
+import com.dhealth.bluetooth.util.Prepare
 import com.dhealth.bluetooth.util.Saved
 import com.dhealth.bluetooth.util.ShareState
 import com.dhealth.bluetooth.util.StorageUtil
+import com.dhealth.bluetooth.util.measurement.TemperatureUtil
 import com.dhealth.bluetooth.viewmodel.TemperatureViewModel
+import com.parse.ParseObject
 import kotlinx.android.synthetic.main.fragment_temperature_measurement.*
 import org.koin.android.ext.android.inject
 
@@ -27,9 +29,12 @@ class TemperatureMeasurementFragment : BaseFragment() {
 
     private val adapter: TempMeasurementRVAdapter by inject()
     private val viewModel: TemperatureViewModel by inject()
+    private lateinit var syncDialog: Dialog
 
     override fun onViewInitialized(savedInstanceState: Bundle?) {
-
+        context?.let { context ->
+            syncDialog = Progress.dialog(context, getString(R.string.sync_data))
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -55,7 +60,7 @@ class TemperatureMeasurementFragment : BaseFragment() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        inflater.inflate(R.menu.share_menu, menu)
+        inflater.inflate(R.menu.measurement_result_menu, menu)
         super.onCreateOptionsMenu(menu, inflater)
     }
 
@@ -66,6 +71,10 @@ class TemperatureMeasurementFragment : BaseFragment() {
                     viewModel.share(context).observe(this, sharingMeasurement)
                 }
             }
+            R.id.nav_sync -> {
+                syncDialog.show()
+                viewModel.sync().observe(this, syncTemperature)
+            }
         }
 
         return true
@@ -75,7 +84,7 @@ class TemperatureMeasurementFragment : BaseFragment() {
         context?.let { context ->
             val progressDialog = Progress.dialog(context, "Mempersiapkan Data...")
             when(state){
-                Loading -> progressDialog.show()
+                Prepare -> progressDialog.show()
                 Saved -> {
                     progressDialog.dismiss()
                     val tempFile = FileProvider.getUriForFile(context,
@@ -90,5 +99,14 @@ class TemperatureMeasurementFragment : BaseFragment() {
                 }
             }
         }
+    }
+
+    private val syncTemperature = Observer<MutableList<Temperature>> {
+        for(temperature in it){
+            val parseObject = TemperatureUtil.temperatureToParseObject(temperature)
+            parseObject.saveInBackground()
+            viewModel.synced(temperature)
+        }
+        syncDialog.dismiss()
     }
 }

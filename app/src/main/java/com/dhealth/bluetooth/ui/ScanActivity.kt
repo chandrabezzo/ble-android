@@ -54,13 +54,14 @@ class ScanActivity : BaseActivity() {
     override fun onInitializedView(savedInstanceState: Bundle?) {
         setSupportActionBar(toolbar)
 
+        selectDevice()
+
         if(PermissionUtil.requestFineLocationPermission(this)){
             if(bleAdapter.isEnabled){
                 if(!GpsUtil(this).isActive(this)){
                     GpsUtil(this).checkStatusGPS(this)
                 }
                 else {
-                    selectDevice()
                     scanLeDevice(bleAdapter.isEnabled)
                 }
             }
@@ -70,7 +71,6 @@ class ScanActivity : BaseActivity() {
                     GpsUtil(this).checkStatusGPS(this)
                 }
                 else {
-                    selectDevice()
                     scanLeDevice(bleAdapter.isEnabled)
                 }
             }

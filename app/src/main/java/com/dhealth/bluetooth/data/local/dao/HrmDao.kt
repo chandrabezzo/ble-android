@@ -18,6 +18,10 @@ interface HrmDao {
     suspend fun allHrm(): MutableList<Hrm>
 
     @WorkerThread
+    @Query("SELECT * FROM ${AppConstants.HEART_RATE} WHERE has_sync = 0")
+    fun getNotSynced(): Flow<MutableList<Hrm>>
+
+    @WorkerThread
     @Query("SELECT * FROM ${AppConstants.HEART_RATE} WHERE id=:id")
     fun get(id: Long): Flow<Hrm>
 
@@ -26,6 +30,9 @@ interface HrmDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserts(values: MutableList<Hrm>)
+
+    @Update
+    suspend fun update(hrm: Hrm)
 
     @Query("DELETE FROM ${AppConstants.HEART_RATE}")
     suspend fun deleteAll()

@@ -18,6 +18,10 @@ interface EcgDao {
     suspend fun allEcg(): MutableList<Ecg>
 
     @WorkerThread
+    @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM} WHERE has_sync = 0")
+    fun getNotSynced(): Flow<MutableList<Ecg>>
+
+    @WorkerThread
     @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM} WHERE id=:id")
     fun get(id: Long): Flow<Ecg>
 
@@ -26,6 +30,9 @@ interface EcgDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun inserts(ecgs: MutableList<Ecg>)
+
+    @Update
+    suspend fun update(ecg: Ecg)
 
     @Query("DELETE FROM ${AppConstants.ELECTROCARDIOGRAM}")
     suspend fun deleteAll()

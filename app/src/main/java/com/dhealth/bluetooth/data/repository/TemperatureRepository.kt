@@ -7,8 +7,6 @@ import com.dhealth.bluetooth.data.local.dao.TemperatureDao
 import com.dhealth.bluetooth.data.model.Temperature
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.observeOn
-import kotlinx.coroutines.flow.toList
 
 class TemperatureRepository(private val dao: TemperatureDao) {
 
@@ -22,6 +20,10 @@ class TemperatureRepository(private val dao: TemperatureDao) {
         return dao.allTemperature()
     }
 
+    fun notSynced(): Flow<MutableList<Temperature>> {
+        return dao.getNotSynced().map { it }
+    }
+
     fun get(id: Long): Flow<Temperature> {
         return dao.get(id)
     }
@@ -32,6 +34,10 @@ class TemperatureRepository(private val dao: TemperatureDao) {
 
     suspend fun inserts(values: ArrayList<Temperature>){
         dao.inserts(values)
+    }
+
+    suspend fun update(temperature: Temperature){
+        dao.update(temperature)
     }
 
     suspend fun delete(temperature: Temperature){

@@ -4,20 +4,23 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.dhealth.bluetooth.data.constant.AppConstants
+import com.google.gson.annotations.Expose
+import com.google.gson.annotations.SerializedName
 import java.util.*
 
 @Entity(tableName = AppConstants.ELECTROCARDIOGRAM)
 data class Ecg(
-    @ColumnInfo(name = "ecg") val ecg: Int,
-    @ColumnInfo(name = "e_tag") val eTag: Int,
-    @ColumnInfo(name = "p_tag") val pTag: Int,
-    @ColumnInfo(name = "r_to_r") val rTor: Int,
-    @ColumnInfo(name = "current_r_to_r") val currentRToRBpm: Int,
-    @ColumnInfo(name = "ecg_mv") val ecgMv: Float,
-    @ColumnInfo(name = "filtered_ecg") val filteredEcg: Float,
-    @ColumnInfo(name = "average_r_to_r") var averageRToRBpm: Float,
-    @ColumnInfo(name = "counter_to_report") val counterToReport: Float,
-    @PrimaryKey @ColumnInfo(name = "id") val id: Long
+    @SerializedName("ecg") @Expose @ColumnInfo(name = "ecg") val ecg: Int,
+    @SerializedName("e_tag") @Expose @ColumnInfo(name = "e_tag") val eTag: Int,
+    @SerializedName("p_tag") @Expose @ColumnInfo(name = "p_tag") val pTag: Int,
+    @SerializedName("r_to_r") @Expose @ColumnInfo(name = "r_to_r") val rTor: Int,
+    @SerializedName("current_r_to_r") @Expose @ColumnInfo(name = "current_r_to_r") val currentRToRBpm: Int,
+    @SerializedName("ecg_mv") @Expose @ColumnInfo(name = "ecg_mv") val ecgMv: Float,
+    @SerializedName("filtered_ecg") @Expose @ColumnInfo(name = "filtered_ecg") val filteredEcg: Float,
+    @SerializedName("average_r_to_r") @Expose @ColumnInfo(name = "average_r_to_r") var averageRToRBpm: Float,
+    @SerializedName("counter_to_report") @Expose @ColumnInfo(name = "counter_to_report") val counterToReport: Float,
+    @SerializedName("ts") @Expose @PrimaryKey @ColumnInfo(name = "id") val id: Long,
+    @ColumnInfo(name = "has_sync") var hasSync: Int = 0
 ){
     companion object {
         val ecgGain = RegisterField(21, 2, 16)

@@ -6,6 +6,7 @@ import androidx.paging.PagedList
 import com.dhealth.bluetooth.data.local.dao.HrmDao
 import com.dhealth.bluetooth.data.model.Hrm
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class HrmRepository(private val dao: HrmDao) {
     fun getAll(): LiveData<PagedList<Hrm>> {
@@ -15,6 +16,10 @@ class HrmRepository(private val dao: HrmDao) {
 
     suspend fun allHrm(): MutableList<Hrm> {
         return dao.allHrm()
+    }
+
+    fun getNotSynced(): Flow<MutableList<Hrm>> {
+        return dao.getNotSynced().map { it }
     }
 
     fun get(id: Long): Flow<Hrm> {
@@ -27,6 +32,10 @@ class HrmRepository(private val dao: HrmDao) {
 
     suspend fun inserts(values: ArrayList<Hrm>){
         dao.inserts(values)
+    }
+
+    suspend fun update(hrm: Hrm){
+        dao.update(hrm)
     }
 
     suspend fun delete(hrm: Hrm){

@@ -1,8 +1,10 @@
 package com.dhealth.bluetooth.util.measurement
 
+import android.icu.util.Measure
 import android.util.Log
 import com.dhealth.bluetooth.data.constant.Maxim
 import com.dhealth.bluetooth.data.model.Temperature
+import com.parse.ParseObject
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -18,7 +20,7 @@ object TemperatureUtil {
         val wrapper = BitSetWrapper(BitSet.valueOf(values), 8)
         wrapper.nextInt(8)
         val celcius = wrapper.nextSignedInt(15).toFloat() / 100.toFloat()
-        return Temperature(celcius, temperatureToFahrenheit(celcius), System.currentTimeMillis())
+        return Temperature(celcius, temperatureToFahrenheit(celcius), MeasurementUtil.getEpoch())
     }
 
     fun temperatureToCelcius(value: Float): Float {
@@ -34,7 +36,7 @@ object TemperatureUtil {
 
         for(temperature in temperatures){
             val json = JSONObject()
-            json.put("id", Calendar.getInstance().timeInMillis)
+            json.put("ts", temperature.id)
             json.put("celcius", temperature.inCelcius)
             json.put("fahrenheit", temperature.inFahrenheit)
 
@@ -42,6 +44,14 @@ object TemperatureUtil {
         }
 
         return jsonArray
+    }
+
+    fun temperatureToParseObject(temperature: Temperature): ParseObject {
+        val parseObject = ParseObject("Temperature")
+        parseObject.put("ts", temperature.id)
+        parseObject.put("celcius", temperature.inCelcius)
+        parseObject.put("fahrenheit", temperature.inFahrenheit)
+        return parseObject
     }
 
     fun commandInterval(connection: Observable<RxBleConnection>, interval: Int): Disposable {
@@ -89,7 +99,7 @@ object TemperatureUtil {
             .subscribe({ data ->
                 val temp = mapper(data)
                 callback.originalData(data)
-                callback.temperature(temp.id, temp.inCelcius, temp.inFahrenheit)
+                callback.temperature(MeasurementUtil.getEpoch(), temp.inCelcius, temp.inFahrenheit)
             }, {
                 callback.onError(it)
             })

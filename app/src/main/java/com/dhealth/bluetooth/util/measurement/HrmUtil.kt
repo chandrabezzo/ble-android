@@ -3,6 +3,7 @@ package com.dhealth.bluetooth.util.measurement
 import android.util.Log
 import com.dhealth.bluetooth.data.constant.Maxim
 import com.dhealth.bluetooth.data.model.Hrm
+import com.parse.ParseObject
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -44,12 +45,27 @@ object HrmUtil {
         }
     }
 
+    fun hrmToParseObject(hrm: Hrm): ParseObject {
+        val parseObject = ParseObject("HeartRate")
+        parseObject.put("ts", hrm.id)
+        parseObject.put("acceleration_x", hrm.accelerationX)
+        parseObject.put("acceleration_y", hrm.accelerationY)
+        parseObject.put("acceleration_z", hrm.accelerationZ)
+        parseObject.put("ch1", hrm.green1Count)
+        parseObject.put("ch2", hrm.green2Count)
+        parseObject.put("activity", hrm.activity)
+        parseObject.put("confidence", hrm.confidence)
+        parseObject.put("heart_rate", hrm.heartRate)
+        parseObject.put("spo2", hrm.spo2)
+        return parseObject
+    }
+
     fun hrmToJson(hrms: MutableList<Hrm>): JSONArray {
         val jsonArray = JSONArray()
 
         for(hrm in hrms){
             val json = JSONObject()
-            json.put("id", hrm.id)
+            json.put("ts", hrm.id)
             json.put("acceleration_x", hrm.accelerationX)
             json.put("acceleration_y", hrm.accelerationY)
             json.put("acceleration_z", hrm.accelerationZ)

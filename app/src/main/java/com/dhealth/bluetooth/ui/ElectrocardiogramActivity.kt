@@ -31,12 +31,12 @@ class ElectrocardiogramActivity : BaseActivity() {
     private val viewModel: EcgViewModel by inject()
 
     private var bleDevice: BleDevice? = null
-    private lateinit var connection: Observable<RxBleConnection>
-    private lateinit var connectionDisposable: Disposable
+    private var connection: Observable<RxBleConnection>? = null
+    private var connectionDisposable: Disposable? = null
     private val defaultRegistersDisposable = ArrayList<Disposable>()
-    private lateinit var getRegisterDisposable: Disposable
-    private lateinit var readEcgDisposable: Disposable
-    private lateinit var ecgDisposable: Disposable
+    private var getRegisterDisposable: Disposable? = null
+    private var readEcgDisposable: Disposable? = null
+    private var ecgDisposable: Disposable? = null
     private val movingAverage = MovingAverage(5)
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data ECG")
     private var isPlay = false
@@ -77,7 +77,7 @@ class ElectrocardiogramActivity : BaseActivity() {
                 val key = entry.key
                 val value = entry.value
 
-                defaultRegistersDisposable.add(EcgUtil.commandSendDefaultRegisterValues(connection, key, value))
+                connection?.let { defaultRegistersDisposable.add(EcgUtil.commandSendDefaultRegisterValues(it, key, value)) }
             }
 
             for(register in defaultRegistersDisposable){
@@ -85,50 +85,53 @@ class ElectrocardiogramActivity : BaseActivity() {
             }
         }
         else {
-            getRegisterDisposable = EcgUtil.commandCreateGetRegister(connection)
-            compositeDisposable.add(getRegisterDisposable)
+            connection?.let {
+                getRegisterDisposable = EcgUtil.commandCreateGetRegister(it)
+                compositeDisposable.add(getRegisterDisposable!!)
+            }
         }
 
-        readEcgDisposable = EcgUtil.commandReadEcg(connection)
-        compositeDisposable.add(readEcgDisposable)
-
-        ecgDisposable = EcgUtil.commandGetEcg(connection, isDefault, movingAverage,
-            object : EcgCallback {
-                override fun originalData(values: ByteArray) {
-                    Log.i("Data ECG", values.contentToString())
-                }
-
-                override fun ecgMonitor(
-                    id: Long,
-                    ecg: Int,
-                    eTag: Int,
-                    pTag: Int,
-                    rTor: Int,
-                    currentRToRBpm: Int,
-                    ecgMv: Float,
-                    filteredEcg: Float,
-                    averageRToRBpm: Float,
-                    counterToReport: Float
-                ) {
-                    Log.i("ECG", MeasurementUtil.decimalFormat(ecgMv))
-                    runOnUiThread {
-                        renderDataSet(ecgMv)
-                        tv_ecg_mv.text = ecgMv.toString()
+        connection?.let {
+            readEcgDisposable = EcgUtil.commandReadEcg(it)
+            compositeDisposable.add(readEcgDisposable!!)
+            ecgDisposable = EcgUtil.commandGetEcg(it, isDefault, movingAverage,
+                object : EcgCallback {
+                    override fun originalData(values: ByteArray) {
+                        Log.i("Data ECG", values.contentToString())
                     }
 
-                    Log.i("Average R-to-R", MeasurementUtil.decimalFormat(averageRToRBpm))
-                    runOnUiThread { tv_average.text = "${MeasurementUtil.decimalFormat(averageRToRBpm)} " +
-                            "${getString(R.string.bpm)}" }
+                    override fun ecgMonitor(
+                        id: Long,
+                        ecg: Int,
+                        eTag: Int,
+                        pTag: Int,
+                        rTor: Int,
+                        currentRToRBpm: Int,
+                        ecgMv: Float,
+                        filteredEcg: Float,
+                        averageRToRBpm: Float,
+                        counterToReport: Float
+                    ) {
+                        Log.i("ECG", MeasurementUtil.decimalFormat(ecgMv))
+                        runOnUiThread {
+                            renderDataSet(ecgMv)
+                            tv_ecg_mv.text = ecgMv.toString()
+                        }
 
-                    runOnUiThread { tv_current.text = "$currentRToRBpm ${getString(R.string.bpm)}" }
+                        Log.i("Average R-to-R", MeasurementUtil.decimalFormat(averageRToRBpm))
+                        runOnUiThread { tv_average.text = "${MeasurementUtil.decimalFormat(averageRToRBpm)} " +
+                                "${getString(R.string.bpm)}" }
 
-                    ecgs.add(Ecg(
-                        ecg, eTag, pTag, rTor, currentRToRBpm, ecgMv, filteredEcg, averageRToRBpm,
-                        counterToReport, id
-                    ))
-                }
-            })
-        compositeDisposable.add(ecgDisposable)
+                        runOnUiThread { tv_current.text = "$currentRToRBpm ${getString(R.string.bpm)}" }
+
+                        ecgs.add(Ecg(
+                            ecg, eTag, pTag, rTor, currentRToRBpm, ecgMv, filteredEcg, averageRToRBpm,
+                            counterToReport, MeasurementUtil.getEpoch()
+                        ))
+                    }
+                })
+            compositeDisposable.add(ecgDisposable!!)
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -237,13 +240,13 @@ class ElectrocardiogramActivity : BaseActivity() {
     }
 
     private fun stopEcg(){
-        MeasurementUtil.commandStop(connection)
-        connectionDisposable.dispose()
+        connection?.let { MeasurementUtil.commandStop(it) }
+        connectionDisposable?.dispose()
         for(register in defaultRegistersDisposable){
             register.dispose()
         }
-        getRegisterDisposable.dispose()
-        readEcgDisposable.dispose()
-        ecgDisposable.dispose()
+        getRegisterDisposable?.dispose()
+        readEcgDisposable?.dispose()
+        ecgDisposable?.dispose()
     }
 }

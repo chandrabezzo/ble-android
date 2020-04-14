@@ -4,6 +4,8 @@ import android.util.Log
 import com.dhealth.bluetooth.data.constant.Maxim
 import com.dhealth.bluetooth.data.constant.Sensors
 import com.dhealth.bluetooth.data.model.Ecg
+import com.parse.Parse
+import com.parse.ParseObject
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -47,6 +49,7 @@ object EcgUtil {
 
         for(ecg in ecgs){
             val json = JSONObject()
+            json.put("ts", ecg.id)
             json.put("ecg", ecg.ecg)
             json.put("e_tag", ecg.eTag)
             json.put("p_tag", ecg.pTag)
@@ -60,6 +63,21 @@ object EcgUtil {
         }
 
         return jsonArray
+    }
+
+    fun ecgToParseObject(ecg: Ecg): ParseObject {
+        val parseObject = ParseObject("Electrocardiogram")
+        parseObject.put("ts", ecg.id)
+        parseObject.put("ecg", ecg.ecg)
+        parseObject.put("e_tag", ecg.eTag)
+        parseObject.put("p_tag", ecg.pTag)
+        parseObject.put("r_to_r", ecg.rTor)
+        parseObject.put("current_to_r", ecg.currentRToRBpm)
+        parseObject.put("ecg_mv", ecg.ecgMv)
+        parseObject.put("filtered_ecg", ecg.filteredEcg)
+        parseObject.put("average_to_r", ecg.averageRToRBpm)
+        parseObject.put("counter_to_report", ecg.counterToReport)
+        return parseObject
     }
 
     fun commandGetEcg(connection: Observable<RxBleConnection>, isDefault: Boolean,

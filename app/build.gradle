@@ -19,8 +19,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"http://192.168.100.6:3000/\"")
+        }
         release {
             minifyEnabled false
+            buildConfigField("String", "BASE_URL", "\"http://192.168.100.6:3000/\"")
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -37,6 +41,7 @@ dependencies {
 
     implementation project(":core")
 
+    implementation "com.github.parse-community.Parse-SDK-Android:parse:1.23.1"
     implementation "com.github.PhilJay:MPAndroidChart:v3.1.0"
     implementation "com.polidea.rxandroidble2:rxandroidble:1.11.1"
     implementation "io.reactivex.rxjava2:rxandroid:2.1.1"
@@ -64,7 +69,7 @@ dependencies {
     implementation "androidx.paging:paging-runtime:$pagingVersion"
 
     // # Local Storage
-    implementation "androidx.room:room-ktx:$roomVersion"
+    implementation "androidx.room:room-ktx:$roomKtxVersion"
     kapt "androidx.room:room-compiler:$roomVersion"
 
     // # Coroutine
@@ -101,7 +106,7 @@ dependencies {
     // # Local Unit Test
     testImplementation "androidx.test.ext:junit-ktx:$junitVersion"
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
-    testImplementation "androidx.arch.core:core-testing:$lifecycleVersion"
+    testImplementation "androidx.arch.core:core-testing:2.1.0"
     testImplementation "org.koin:koin-test:$koinVersion"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$kotlinCoroutineTest"
     androidTestImplementation "androidx.room:room-testing:$roomVersion"

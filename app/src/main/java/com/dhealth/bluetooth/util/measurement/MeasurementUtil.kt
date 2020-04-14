@@ -22,10 +22,8 @@ object MeasurementUtil {
     }
 
     fun getDateTime(miliSeconds: Long): String {
-        val formatter = SimpleDateFormat("dd MMMM yyyy hh:mm:ss")
-        val calendar = Calendar.getInstance()
-        calendar.timeInMillis = miliSeconds
-        return formatter.format(calendar.time)
+        val formatter = SimpleDateFormat("dd MMMM yyyy HH:mm:ss")
+        return formatter.format(Date(miliSeconds*1000))
     }
 
     fun commandGetDeviceInfo(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
@@ -134,5 +132,9 @@ object MeasurementUtil {
         }
 
         return arrayList
+    }
+
+    fun getEpoch(): Long {
+        return System.currentTimeMillis() / 1000
     }
 }
