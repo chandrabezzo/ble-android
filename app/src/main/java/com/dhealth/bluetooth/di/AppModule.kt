@@ -2,8 +2,10 @@ package com.dhealth.bluetooth.di
 
 import com.bezzo.core.data.session.SessionHelper
 import com.dhealth.bluetooth.adapter.*
+import com.dhealth.bluetooth.data.repository.MeasurementRepository
 import com.dhealth.bluetooth.viewmodel.EcgViewModel
 import com.dhealth.bluetooth.viewmodel.HrmViewModel
+import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
 import com.dhealth.bluetooth.viewmodel.TemperatureViewModel
 import com.polidea.rxandroidble2.RxBleClient
 import io.reactivex.disposables.CompositeDisposable
@@ -16,12 +18,14 @@ val appModule = module {
     single { SessionHelper() }
     single { RxBleClient.create(androidContext()) }
     single { CompositeDisposable() }
+    factory { MeasurementRepository(get()) }
 }
 
 val viewModelModule = module {
     viewModel { TemperatureViewModel(androidApplication()) }
     viewModel { HrmViewModel(androidApplication()) }
     viewModel { EcgViewModel(androidApplication()) }
+    viewModel { MeasurementViewModel(get(), get(), androidApplication()) }
 }
 
 val rvAdapterModule = module {

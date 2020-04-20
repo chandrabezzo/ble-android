@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    android:id="@+id/ll_content"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".ui.MeasurementSetting">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:title="@string/measurement_setting"
+        android:background="@color/colorPrimary"
+        app:titleTextColor="@color/white"
+        android:layout_alignParentTop="true"/>
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tv_device_info"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:layout_below="@id/toolbar"/>
+
+    <RadioGroup
+        android:id="@+id/rg_measurement"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:layout_below="@id/tv_device_info">
+
+        <RadioButton
+            android:id="@+id/rb_temperature"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/temperature"/>
+
+        <RadioButton
+            android:id="@+id/rb_heart_rate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/heart_rate"/>
+
+        <RadioButton
+            android:id="@+id/rb_ecg"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/electrocardiogram"/>
+    </RadioGroup>
+
+    <LinearLayout
+        android:id="@+id/ll_monitoring"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_below="@id/rg_measurement">
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/sw_monitoring"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/monitoring"/>
+    </LinearLayout>
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tv_checking"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        tools:text="Checking..."
+        android:layout_below="@id/ll_monitoring"/>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_history"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        app:useCompatPadding="true"
+        app:tint="@color/white"
+        app:backgroundTint="@color/colorPrimary"
+        android:src="@drawable/ic_history" />
+</RelativeLayout>

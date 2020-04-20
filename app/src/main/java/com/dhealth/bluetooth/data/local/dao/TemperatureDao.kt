@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TemperatureDao {
     @WorkerThread
-    @Query("SELECT * FROM ${AppConstants.TEMPERATURE}")
+    @Query("SELECT * FROM ${AppConstants.TEMPERATURE} ORDER BY id DESC")
     fun getAll(): DataSource.Factory<Int, Temperature>
 
     @WorkerThread
-    @Query("SELECT * FROM ${AppConstants.TEMPERATURE}")
+    @Query("SELECT * FROM ${AppConstants.TEMPERATURE} ORDER BY id DESC")
     suspend fun allTemperature(): MutableList<Temperature>
 
     @WorkerThread

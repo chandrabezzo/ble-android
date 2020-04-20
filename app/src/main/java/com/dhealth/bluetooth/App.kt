@@ -22,7 +22,7 @@ class App: Application() {
 
         Parse.initialize(
             Parse.Configuration.Builder(this)
-                .applicationId(BuildConfig.APPLICATION_ID) // if defined
+                .applicationId("com.dhealth.bluetooth") // if defined
                 .clientKey("MuJiCz/eeCAj44f0neyc5IMYWP2Lz+wonQY7i5S0x5M=")
                 .server("http://parse.dev.dhealth.co.id/parse/")
                 .build()

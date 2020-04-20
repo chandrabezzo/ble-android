@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface HrmDao {
     @WorkerThread
-    @Query("SELECT * FROM ${AppConstants.HEART_RATE}")
+    @Query("SELECT * FROM ${AppConstants.HEART_RATE} ORDER BY id DESC")
     fun getAll(): DataSource.Factory<Int, Hrm>
 
     @WorkerThread
-    @Query("SELECT * FROM ${AppConstants.HEART_RATE}")
+    @Query("SELECT * FROM ${AppConstants.HEART_RATE} ORDER BY id DESC")
     suspend fun allHrm(): MutableList<Hrm>
 
     @WorkerThread

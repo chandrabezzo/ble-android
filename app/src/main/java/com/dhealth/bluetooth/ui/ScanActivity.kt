@@ -13,6 +13,7 @@ import android.view.MenuItem
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.work.WorkManager
 import com.bezzo.core.base.BaseActivity
 import com.bezzo.core.extension.*
 import com.bezzo.core.listener.OnItemClickListener
@@ -23,16 +24,19 @@ import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.ui.measurement.MeasurementResultActivity
 import com.dhealth.bluetooth.util.GpsUtil
 import com.dhealth.bluetooth.util.PermissionUtil
+import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.android.synthetic.main.activity_scan.*
 import org.koin.android.ext.android.inject
 
 class ScanActivity : BaseActivity() {
 
+    private val bleDeviceAdapter: BleDeviceRVAdapter by inject()
+    private val measurementVM: MeasurementViewModel by inject()
+
     private val scanPeriod: Long = 1000
     private var mScanning = false
     private var mHandler = Handler()
-    private val bleDeviceAdapter: BleDeviceRVAdapter by inject()
     private lateinit var selectedDevice: BleDevice
 
     companion object {
@@ -53,6 +57,8 @@ class ScanActivity : BaseActivity() {
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         setSupportActionBar(toolbar)
+
+        if(measurementVM.selectedDevice() != "-") launchActivity<ActionActivity>()
 
         selectDevice()
 
@@ -166,8 +172,9 @@ class ScanActivity : BaseActivity() {
     private fun selectDevice(){
         bleDeviceAdapter.setOnItemClick(object : OnItemClickListener{
             override fun onItemClick(itemView: View, position: Int) {
-                selectedDevice = bleDeviceAdapter.getItem(position)
-                selectedDevice.device.connectGatt(this@ScanActivity,
+                val device = bleDeviceAdapter.getItem(position).device
+                measurementVM.selectedDevice(device)
+                device.connectGatt(this@ScanActivity,
                     true, gattCallback)
                 connecting()
             }
@@ -181,9 +188,7 @@ class ScanActivity : BaseActivity() {
     private val gattCallback = object: BluetoothGattCallback(){
         override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
             if(newState == BluetoothProfile.STATE_CONNECTED){
-                launchActivity<ActionActivity>{
-                    putExtra(Extras.BLE_DEVICE, selectedDevice)
-                }
+                launchActivity<ActionActivity>()
             }
         }
     }

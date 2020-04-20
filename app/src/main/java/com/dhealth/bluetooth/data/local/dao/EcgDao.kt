@@ -10,11 +10,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface EcgDao {
     @WorkerThread
-    @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM}")
+    @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM} ORDER BY id DESC")
     fun getAll(): DataSource.Factory<Int, Ecg>
 
     @WorkerThread
-    @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM}")
+    @Query("SELECT * FROM ${AppConstants.ELECTROCARDIOGRAM} ORDER BY id DESC")
     suspend fun allEcg(): MutableList<Ecg>
 
     @WorkerThread

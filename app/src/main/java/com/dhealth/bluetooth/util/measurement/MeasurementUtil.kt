@@ -26,12 +26,12 @@ object MeasurementUtil {
         return formatter.format(Date(miliSeconds*1000))
     }
 
-    fun commandGetDeviceInfo(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandGetDeviceInfo(connection: Observable<RxBleConnection>): Disposable {
         val commandsGetDeviceInfo =
             sendCommand(
                 Commands.getDeviceInfo
             )
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsGetDeviceInfo.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -39,15 +39,15 @@ object MeasurementUtil {
             Log.i("Data Device Info", it?.contentToString())
         }, {
             Log.e("Error Device Info", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandCreateSetTime(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandCreateSetTime(connection: Observable<RxBleConnection>): Disposable {
         val commandsCreateSetTime =
             sendCommand(
                 Commands.createSetTimeCommand()
             )
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsCreateSetTime.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -55,15 +55,15 @@ object MeasurementUtil {
             Log.i("Data Create Set Time", it?.contentToString())
         }, {
             Log.e("Error Create Set Time", it.localizedMessage)
-        }))
+        })
     }
 
-    fun commandSetStreamTypeToBin(compositeDisposable: CompositeDisposable, connection: Observable<RxBleConnection>){
+    fun commandSetStreamTypeToBin(connection: Observable<RxBleConnection>): Disposable {
         val commandsSetStreamTypeToBin =
             sendCommand(
                 Commands.setStreamTypeToBinary
             )
-        compositeDisposable.add(connection.flatMap {
+        return connection.flatMap {
             commandsSetStreamTypeToBin.toObservable().flatMap { data ->
                 it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
             }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
@@ -71,7 +71,7 @@ object MeasurementUtil {
             Log.i("Data Stream Type 2 Bin", it?.contentToString())
         }, {
             Log.e("Error Stream Type 2 Bin", it.localizedMessage)
-        }))
+        })
     }
 
     fun commandStop(connection: Observable<RxBleConnection>): Disposable {

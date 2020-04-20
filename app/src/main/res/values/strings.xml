@@ -21,6 +21,11 @@
     <string name="sync">Sync</string>
     <string name="measurements">Measurements</string>
     <string name="sync_data">Sinkronisasi Data...</string>
+    <string name="measurement_setting">Measurement Setting</string>
+    <string name="monitoring">Monitoring</string>
+    <string name="background_monitoring">Background Monitoring</string>
+    <string name="stand_by">Stand By</string>
+    <string name="checking">Checking...</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
