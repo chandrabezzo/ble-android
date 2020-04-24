@@ -55,32 +55,41 @@
             android:text="@string/electrocardiogram"/>
     </RadioGroup>
 
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tv_monitoring"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/monitoring"
+        android:textAlignment="center"
+        android:layout_marginTop="16dp"
+        android:layout_below="@id/rg_measurement"/>
+
     <LinearLayout
-        android:id="@+id/ll_monitoring"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:gravity="center"
-        android:layout_below="@id/rg_measurement">
+        android:layout_below="@id/tv_monitoring"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/sw_monitoring"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:layout_width="wrap_content"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mb_stop"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:text="@string/monitoring"/>
-    </LinearLayout>
+            android:layout_marginEnd="8dp"
+            android:text="@string/stop"
+            app:backgroundTint="@android:color/holo_red_light"/>
 
-    <androidx.appcompat.widget.AppCompatTextView
-        android:id="@+id/tv_checking"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        tools:text="Checking..."
-        android:layout_below="@id/ll_monitoring"/>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mb_start"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="@string/start"
+            app:backgroundTint="@android:color/holo_green_light"/>
+    </LinearLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_history"

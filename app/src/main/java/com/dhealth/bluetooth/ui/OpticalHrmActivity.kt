@@ -18,6 +18,7 @@ import com.dhealth.bluetooth.util.measurement.HrmUtil
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
 import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.viewmodel.HrmViewModel
+import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
@@ -36,8 +37,8 @@ class OpticalHrmActivity : BaseActivity() {
 
     private val compositeDisposable: CompositeDisposable by inject()
     private val viewModel: HrmViewModel by inject()
+    private val measurementVM: MeasurementViewModel by inject()
 
-    private var bleDevice: BleDevice? = null
     private var connection: Observable<RxBleConnection>? = null
     private var connectionDisposable: Disposable? = null
     private var hrmDisposable: Disposable? = null
@@ -50,8 +51,6 @@ class OpticalHrmActivity : BaseActivity() {
     private val hrms = ArrayList<Hrm>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
-        bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
-
         connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
             this.connection = connection
         })
@@ -61,7 +60,7 @@ class OpticalHrmActivity : BaseActivity() {
 
         setSupportActionBar(toolbar)
         toolbar.title = "Optical HRM"
-        tv_device_info.text = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
+        tv_device_info.text = measurementVM.selectedDevice()
 
         chartDesign()
     }

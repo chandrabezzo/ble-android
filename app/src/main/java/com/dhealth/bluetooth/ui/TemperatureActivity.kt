@@ -16,6 +16,7 @@ import com.dhealth.bluetooth.util.measurement.MeasurementUtil
 import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.util.measurement.TemperatureCallback
 import com.dhealth.bluetooth.util.measurement.TemperatureUtil
+import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
 import com.dhealth.bluetooth.viewmodel.TemperatureViewModel
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
@@ -33,8 +34,8 @@ class TemperatureActivity : BaseActivity() {
 
     private val compositeDisposable: CompositeDisposable by inject()
     private val viewModel: TemperatureViewModel by inject()
+    private val measurementVM: MeasurementViewModel by inject()
 
-    private var bleDevice: BleDevice? = null
     private var connection: Observable<RxBleConnection>? = null
     private var connectionDisposable: Disposable? = null
     private var intervalDisposable: Disposable? = null
@@ -46,7 +47,6 @@ class TemperatureActivity : BaseActivity() {
     private val temps = ArrayList<Temperature>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
-        bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
 
         connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
             this.connection = connection
@@ -57,7 +57,7 @@ class TemperatureActivity : BaseActivity() {
 
         setSupportActionBar(toolbar)
         toolbar.title = "Temperature"
-        tv_device_info.text = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
+        tv_device_info.text = measurementVM.selectedDevice()
 
         chartDesign()
 

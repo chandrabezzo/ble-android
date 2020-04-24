@@ -14,6 +14,7 @@ import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.data.model.Ecg
 import com.dhealth.bluetooth.util.measurement.*
 import com.dhealth.bluetooth.viewmodel.EcgViewModel
+import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -29,8 +30,8 @@ class ElectrocardiogramActivity : BaseActivity() {
 
     private val compositeDisposable: CompositeDisposable by inject()
     private val viewModel: EcgViewModel by inject()
+    private val measurementVM: MeasurementViewModel by inject()
 
-    private var bleDevice: BleDevice? = null
     private var connection: Observable<RxBleConnection>? = null
     private var connectionDisposable: Disposable? = null
     private val defaultRegistersDisposable = ArrayList<Disposable>()
@@ -44,8 +45,6 @@ class ElectrocardiogramActivity : BaseActivity() {
     private val ecgs = ArrayList<Ecg>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
-        bleDevice = dataReceived?.getParcelable(Extras.BLE_DEVICE)
-
         connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
             this.connection = connection
         })
@@ -55,7 +54,7 @@ class ElectrocardiogramActivity : BaseActivity() {
             WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
         setSupportActionBar(toolbar)
-        tv_device_info.text = "${bleDevice?.device?.name} (${bleDevice?.device?.address})"
+        tv_device_info.text = measurementVM.selectedDevice()
         toolbar.title = "Electrocardiogram"
 
         chartDesign()

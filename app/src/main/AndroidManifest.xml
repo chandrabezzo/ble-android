@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
 
     <uses-feature
         android:name="android.hardware.bluetooth_le"
@@ -23,7 +25,21 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".ui.MeasurementSetting"></activity>
+
+        <service
+            android:name=".services.MeasurementJobIntentService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="true"/>
+
+        <service android:name=".services.MeasurementService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="true"/>
+
+        <activity
+            android:name=".ui.MeasurementSetting"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -56,8 +56,8 @@ class MeasurementViewModel(private val compositeDisposable: CompositeDisposable,
         return repository.isChecking()
     }
 
-    fun compositeDisposable(): CompositeDisposable {
-        return compositeDisposable
+    fun disposeComposite() {
+        return compositeDisposable.dispose()
     }
 
     fun prepareDevice(connection: Observable<RxBleConnection>){

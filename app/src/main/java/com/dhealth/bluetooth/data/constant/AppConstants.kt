@@ -10,4 +10,5 @@ object AppConstants {
     const val SELECTED_DEVICE = "SelectedDevice"
     const val WORKER_MOST_SIG_BIT = "WorkerMostSigBit"
     const val WORKER_LEAST_SIG_BIT = "WorkerLeastSigBit"
+    const val DEFAULT_ECG = "DefaultEcg"
 }

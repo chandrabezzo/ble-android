@@ -24,8 +24,13 @@ import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.ui.measurement.MeasurementResultActivity
 import com.dhealth.bluetooth.util.GpsUtil
 import com.dhealth.bluetooth.util.PermissionUtil
+import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
 import com.google.android.material.snackbar.Snackbar
+import com.jakewharton.rx.ReplayingShare
+import com.polidea.rxandroidble2.RxBleClient
+import com.polidea.rxandroidble2.RxBleConnection
+import io.reactivex.Observable
 import kotlinx.android.synthetic.main.activity_scan.*
 import org.koin.android.ext.android.inject
 
@@ -33,11 +38,12 @@ class ScanActivity : BaseActivity() {
 
     private val bleDeviceAdapter: BleDeviceRVAdapter by inject()
     private val measurementVM: MeasurementViewModel by inject()
+    private val bleClient: RxBleClient by inject()
 
     private val scanPeriod: Long = 1000
     private var mScanning = false
     private var mHandler = Handler()
-    private lateinit var selectedDevice: BleDevice
+    private lateinit var connection: Observable<RxBleConnection>
 
     companion object {
         const val REQUEST_BT = 1
@@ -58,7 +64,10 @@ class ScanActivity : BaseActivity() {
     override fun onInitializedView(savedInstanceState: Bundle?) {
         setSupportActionBar(toolbar)
 
-        if(measurementVM.selectedDevice() != "-") launchActivity<ActionActivity>()
+        if(measurementVM.selectedDevice() != "-") {
+            connection()
+            launchActivity<ActionActivity>()
+        }
 
         selectDevice()
 
@@ -126,6 +135,7 @@ class ScanActivity : BaseActivity() {
                     bleAdapter.stopLeScan(leScanCallback)
                 }, scanPeriod)
                 mScanning = true
+                bleAdapter.startLeScan(leScanCallback)
             }
             else {
                 mScanning = false
@@ -174,9 +184,7 @@ class ScanActivity : BaseActivity() {
             override fun onItemClick(itemView: View, position: Int) {
                 val device = bleDeviceAdapter.getItem(position).device
                 measurementVM.selectedDevice(device)
-                device.connectGatt(this@ScanActivity,
-                    true, gattCallback)
-                connecting()
+                connection()
             }
 
             override fun onItemLongClick(itemView: View, position: Int): Boolean {
@@ -185,17 +193,13 @@ class ScanActivity : BaseActivity() {
         })
     }
 
-    private val gattCallback = object: BluetoothGattCallback(){
-        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-            if(newState == BluetoothProfile.STATE_CONNECTED){
-                launchActivity<ActionActivity>()
-            }
-        }
-    }
+    private fun connection(){
+//        connection = bleClient.getBleDevice(measurementVM.selectedDevice())
+//            .establishConnection(false).compose(ReplayingShare.instance())
+//        RxBus.publish(connection)
 
-    private fun connecting(){
-        pb_loading.show()
-        sr_device.hide()
+//        measurementVM.prepareDevice(connection)
+        launchActivity<ActionActivity>()
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {

@@ -20,42 +20,30 @@ import org.koin.android.ext.android.inject
 class ActionActivity : BaseActivity() {
 
     private val viewModel: MeasurementViewModel by inject()
-    private val bleClient: RxBleClient by inject()
-
-    private lateinit var connection: Observable<RxBleConnection>
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
         setSupportActionBar(toolbar)
 
-        connection = bleClient.getBleDevice(viewModel.selectedDevice())
-            .establishConnection(true).compose(ReplayingShare.instance())
-
-        viewModel.prepareDevice(connection)
-
         cv_electrocardiogram.setOnClickListener {
             if(isPermissionGranted()){
-                RxBus.publish(connection)
                 launchActivity<ElectrocardiogramActivity>()
             }
         }
 
         cv_optical_hrm.setOnClickListener {
             if(isPermissionGranted()){
-                RxBus.publish(connection)
                 launchActivity<OpticalHrmActivity>()
             }
         }
 
         cv_temperature.setOnClickListener {
             if(isPermissionGranted()){
-                RxBus.publish(connection)
                 launchActivity<TemperatureActivity>()
             }
         }
 
         cv_background_monitoring.setOnClickListener {
             if(isPermissionGranted()){
-                RxBus.publish(connection)
                 launchActivity<MeasurementSetting>()
             }
         }
@@ -63,11 +51,6 @@ class ActionActivity : BaseActivity() {
 
     override fun setLayout(): Int {
         return R.layout.activity_action
-    }
-
-    override fun onDestroy() {
-        viewModel.compositeDisposable().dispose()
-        super.onDestroy()
     }
 
     private fun isPermissionGranted(): Boolean {
