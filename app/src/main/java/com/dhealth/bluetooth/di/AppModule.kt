@@ -17,7 +17,7 @@ import org.koin.dsl.module
 val appModule = module {
     single { SessionHelper() }
     single { RxBleClient.create(androidContext()) }
-    single { CompositeDisposable() }
+    factory { CompositeDisposable() }
     factory { MeasurementRepository(get()) }
 }
 

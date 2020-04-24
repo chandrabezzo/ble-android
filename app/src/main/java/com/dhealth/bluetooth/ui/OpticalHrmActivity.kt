@@ -9,14 +9,12 @@ import android.view.WindowManager
 import androidx.annotation.ColorRes
 import androidx.core.content.ContextCompat
 import com.bezzo.core.base.BaseActivity
+import com.bezzo.core.extension.launchActivityClearAllStack
 import com.dhealth.bluetooth.R
-import com.dhealth.bluetooth.data.constant.Extras
-import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.data.model.Hrm
 import com.dhealth.bluetooth.util.measurement.HrmCallback
 import com.dhealth.bluetooth.util.measurement.HrmUtil
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
-import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.viewmodel.HrmViewModel
 import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
 import com.github.mikephil.charting.components.Legend
@@ -24,36 +22,31 @@ import com.github.mikephil.charting.components.YAxis
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.jakewharton.rx.ReplayingShare
+import com.polidea.rxandroidble2.RxBleClient
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.disposables.Disposable
-import io.reactivex.functions.Consumer
 import kotlinx.android.synthetic.main.activity_optical_hrm.*
 import org.koin.android.ext.android.inject
 import kotlin.math.max
+import kotlin.system.exitProcess
 
 class OpticalHrmActivity : BaseActivity() {
 
     private val compositeDisposable: CompositeDisposable by inject()
     private val viewModel: HrmViewModel by inject()
     private val measurementVM: MeasurementViewModel by inject()
+    private val bleClient: RxBleClient by inject()
 
-    private var connection: Observable<RxBleConnection>? = null
-    private var connectionDisposable: Disposable? = null
-    private var hrmDisposable: Disposable? = null
-    private var minConfidenceLevelDisposable: Disposable? = null
-    private var hrExpireDurationDisposable: Disposable? = null
-    private var readHrmDisposable: Disposable? = null
+    private lateinit var connection: Observable<RxBleConnection>
     private val ch1 =  LineDataSet(ArrayList<Entry>(), "ch1")
     private val ch2 =  LineDataSet(ArrayList<Entry>(), "ch2")
     private var isPlay = false
-    private val hrms = ArrayList<Hrm>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
-        connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
-            this.connection = connection
-        })
+        connection = bleClient.getBleDevice(measurementVM.selectedDevice())
+            .establishConnection(false).compose(ReplayingShare.instance())
 
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -69,69 +62,54 @@ class OpticalHrmActivity : BaseActivity() {
         return R.layout.activity_optical_hrm
     }
 
-    override fun onDestroy() {
-        stopMeasurement()
-        viewModel.inserts(hrms)
-        super.onDestroy()
-    }
-
     private fun doMeasurement(){
-        connection?.let { connection ->
-            minConfidenceLevelDisposable = HrmUtil.commandMinConfidenceLevel(connection, 0)
-            compositeDisposable.add(minConfidenceLevelDisposable!!)
+        compositeDisposable.add(HrmUtil.commandMinConfidenceLevel(connection, 0))
+        compositeDisposable.add(HrmUtil.commandHrExpireDuration(connection, 30))
+        compositeDisposable.add(HrmUtil.commandReadHrm(connection))
+        compositeDisposable.add(HrmUtil.commandGetHrm(connection, object : HrmCallback{
+            override fun originalData(values: ByteArray) {
+                Log.i("Data HRM", values.contentToString())
+            }
 
-            hrExpireDurationDisposable = HrmUtil.commandHrExpireDuration(connection, 30)
-            compositeDisposable.add(hrExpireDurationDisposable!!)
+            override fun heartRateMonitor(
+                id: Long,
+                channel1: Int,
+                channel2: Int,
+                heartRate: Int,
+                confidence: Int,
+                activity: String,
+                accelerationX: Float,
+                accelerationY: Float,
+                accelerationZ: Float,
+                spo2: Float
+            ) {
+                Log.i("Channel", "$channel1 & $channel2")
+                runOnUiThread { renderDataSet(channel1.toFloat(), channel2.toFloat()) }
 
-            readHrmDisposable = HrmUtil.commandReadHrm(connection)
-            compositeDisposable.add(readHrmDisposable!!)
-
-            hrmDisposable = HrmUtil.commandGetHrm(connection, object : HrmCallback{
-                override fun originalData(values: ByteArray) {
-                    Log.i("Data HRM", values.contentToString())
+                Log.i("Heart Rate", heartRate.toString())
+                if(heartRate.toString() != tv_heart_rate.text){
+                    runOnUiThread { tv_heart_rate.text = "$heartRate ${getString(R.string.bpm)}" }
                 }
 
-                override fun heartRateMonitor(
-                    id: Long,
-                    channel1: Int,
-                    channel2: Int,
-                    heartRate: Int,
-                    confidence: Int,
-                    activity: String,
-                    accelerationX: Float,
-                    accelerationY: Float,
-                    accelerationZ: Float,
-                    spo2: Float
-                ) {
-                    Log.i("Channel", "$channel1 & $channel2")
-                    runOnUiThread { renderDataSet(channel1.toFloat(), channel2.toFloat()) }
-
-                    Log.i("Heart Rate", heartRate.toString())
-                    if(heartRate.toString() != tv_heart_rate.text){
-                        runOnUiThread { tv_heart_rate.text = "$heartRate ${getString(R.string.bpm)}" }
-                    }
-
-                    val confidenceHeartRate = "${confidence} %"
-                    Log.i("Heart Rate Confidence", confidenceHeartRate)
-                    if(confidenceHeartRate != tv_confident.text){
-                        runOnUiThread { tv_confident.text = confidenceHeartRate }
-                    }
-
-                    Log.i("Activity", activity)
-                    if(activity != tv_activity.text){
-                        runOnUiThread { tv_activity.text = activity }
-                    }
-
-                    if(confidence >= 90){
-                        hrms.add(Hrm(
-                            channel1, channel2, accelerationX, accelerationY, accelerationZ, heartRate,
-                            confidence, spo2, activity, MeasurementUtil.getEpoch()
-                        ))
-                    }
+                val confidenceHeartRate = "${confidence} %"
+                Log.i("Heart Rate Confidence", confidenceHeartRate)
+                if(confidenceHeartRate != tv_confident.text){
+                    runOnUiThread { tv_confident.text = confidenceHeartRate }
                 }
-            })
-            compositeDisposable.add(hrmDisposable!!)
-        }
+
+                Log.i("Activity", activity)
+                if(activity != tv_activity.text){
+                    runOnUiThread { tv_activity.text = activity }
+                }
+
+                if(confidence >= 90){
+                    viewModel.add(Hrm(
+                        channel1, channel2, accelerationX, accelerationY, accelerationZ, heartRate,
+                        confidence, spo2, activity, MeasurementUtil.getEpoch()
+                    ))
+                }
+            }
+        }))
     }
 
     private fun chartDesign(){
@@ -232,9 +210,6 @@ class OpticalHrmActivity : BaseActivity() {
         when(item.itemId){
             R.id.nav_start -> {
                 isPlay = true
-                connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
-                    this.connection = connection
-                })
                 clearData()
                 doMeasurement()
             }
@@ -263,11 +238,14 @@ class OpticalHrmActivity : BaseActivity() {
     }
 
     private fun stopMeasurement(){
-        connection?.let { MeasurementUtil.commandStop(it) }
-        connectionDisposable?.dispose()
-        minConfidenceLevelDisposable?.dispose()
-        hrExpireDurationDisposable?.dispose()
-        readHrmDisposable?.dispose()
-        hrmDisposable?.dispose()
+        MeasurementUtil.commandStop(connection)
+        compositeDisposable.clear()
+    }
+
+    override fun onBackPressed() {
+        stopMeasurement()
+        compositeDisposable.dispose()
+        exitProcess(0)
+        launchActivityClearAllStack<ScanActivity>()
     }
 }

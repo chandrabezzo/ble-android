@@ -7,13 +7,11 @@ import android.view.MenuItem
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.bezzo.core.base.BaseActivity
+import com.bezzo.core.extension.launchActivityClearAllStack
 import com.dhealth.bluetooth.R
-import com.dhealth.bluetooth.data.constant.Extras
-import com.dhealth.bluetooth.data.model.BleDevice
 import com.dhealth.bluetooth.data.model.Temperature
 import com.dhealth.bluetooth.util.TemperatureValueFormatter
 import com.dhealth.bluetooth.util.measurement.MeasurementUtil
-import com.dhealth.bluetooth.util.measurement.RxBus
 import com.dhealth.bluetooth.util.measurement.TemperatureCallback
 import com.dhealth.bluetooth.util.measurement.TemperatureUtil
 import com.dhealth.bluetooth.viewmodel.MeasurementViewModel
@@ -21,13 +19,14 @@ import com.dhealth.bluetooth.viewmodel.TemperatureViewModel
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
+import com.jakewharton.rx.ReplayingShare
+import com.polidea.rxandroidble2.RxBleClient
 import com.polidea.rxandroidble2.RxBleConnection
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.disposables.Disposable
-import io.reactivex.functions.Consumer
 import kotlinx.android.synthetic.main.activity_temperature.*
 import org.koin.android.ext.android.inject
+import kotlin.system.exitProcess
 
 
 class TemperatureActivity : BaseActivity() {
@@ -35,22 +34,17 @@ class TemperatureActivity : BaseActivity() {
     private val compositeDisposable: CompositeDisposable by inject()
     private val viewModel: TemperatureViewModel by inject()
     private val measurementVM: MeasurementViewModel by inject()
+    private val bleClient: RxBleClient by inject()
 
-    private var connection: Observable<RxBleConnection>? = null
-    private var connectionDisposable: Disposable? = null
-    private var intervalDisposable: Disposable? = null
-    private var readTempDisposable: Disposable? = null
-    private var temperatureDisposable: Disposable? = null
+    private lateinit var connection: Observable<RxBleConnection>
     private val lineDataset =  LineDataSet(ArrayList<Entry>(), "Data Temperature")
     private var isCelcius = true
     private var isPlay = false
-    private val temps = ArrayList<Temperature>()
 
     override fun onInitializedView(savedInstanceState: Bundle?) {
 
-        connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
-            this.connection = connection
-        })
+        connection = bleClient.getBleDevice(measurementVM.selectedDevice())
+            .establishConnection(false).compose(ReplayingShare.instance())
 
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN)
@@ -92,12 +86,6 @@ class TemperatureActivity : BaseActivity() {
 
     override fun setLayout(): Int {
         return R.layout.activity_temperature
-    }
-
-    override fun onDestroy() {
-        stopTemperature()
-        viewModel.inserts(temps)
-        super.onDestroy()
     }
 
     private fun chartDesign(){
@@ -161,47 +149,40 @@ class TemperatureActivity : BaseActivity() {
     }
 
     private fun doMeasurement(){
-        connection?.let {
-            intervalDisposable = TemperatureUtil.commandInterval(it, 1000)
-            compositeDisposable.add(intervalDisposable!!)
+        compositeDisposable.add(TemperatureUtil.commandInterval(connection, 1000))
+        compositeDisposable.add(TemperatureUtil.commandReadTemp(connection))
+        compositeDisposable.add(TemperatureUtil.commandGetTemperature(connection, object : TemperatureCallback {
+            override fun originalData(values: ByteArray) {
+                Log.i("Data Notification", values.contentToString())
+            }
 
-            readTempDisposable = TemperatureUtil.commandReadTemp(it)
-            compositeDisposable.add(readTempDisposable!!)
+            override fun temperature(id: Long, celcius: Float, fahrenheit: Float) {
+                Log.i("Suhu", MeasurementUtil.decimalFormat(celcius))
+                viewModel.add(Temperature(celcius, fahrenheit, MeasurementUtil.getEpoch()))
 
-            temperatureDisposable = TemperatureUtil.commandGetTemperature(it, object : TemperatureCallback {
-                override fun originalData(values: ByteArray) {
-                    Log.i("Data Notification", values.contentToString())
-                }
-
-                override fun temperature(id: Long, celcius: Float, fahrenheit: Float) {
-                    Log.i("Suhu", MeasurementUtil.decimalFormat(celcius))
-                    temps.add(Temperature(celcius, fahrenheit, MeasurementUtil.getEpoch()))
-
-                    if(isCelcius) {
-                        runOnUiThread {
-                            renderDataSet(celcius)
-                            val suhu = MeasurementUtil.decimalFormat(celcius)
-                            tv_celcius.text = "$suhu ${getString(R.string.derajat_celcius)}"
-                        }
+                if(isCelcius) {
+                    runOnUiThread {
+                        renderDataSet(celcius)
+                        val suhu = MeasurementUtil.decimalFormat(celcius)
+                        tv_celcius.text = "$suhu ${getString(R.string.derajat_celcius)}"
                     }
+                }
 
-                    Log.i("Suhu Fahrenheit", MeasurementUtil.decimalFormat(fahrenheit))
-                    if(!isCelcius){
-                        runOnUiThread {
-                            renderDataSet(fahrenheit)
-                        }
+                Log.i("Suhu Fahrenheit", MeasurementUtil.decimalFormat(fahrenheit))
+                if(!isCelcius){
+                    runOnUiThread {
+                        renderDataSet(fahrenheit)
                     }
-
-                    val suhu = MeasurementUtil.decimalFormat(fahrenheit)
-                    tv_fahrenheit.text = "$suhu ${getString(R.string.derajat_fahrenheit)}"
                 }
 
-                override fun onError(error: Throwable) {
-                    Log.e("Error Notification", error.localizedMessage)
-                }
-            })
-            compositeDisposable.add(temperatureDisposable!!)
-        }
+                val suhu = MeasurementUtil.decimalFormat(fahrenheit)
+                tv_fahrenheit.text = "$suhu ${getString(R.string.derajat_fahrenheit)}"
+            }
+
+            override fun onError(error: Throwable) {
+                Log.e("Error Notification", error.localizedMessage)
+            }
+        }))
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -227,9 +208,6 @@ class TemperatureActivity : BaseActivity() {
         when(item.itemId){
             R.id.nav_start -> {
                 isPlay = true
-                connectionDisposable = RxBus.subscribe(Consumer<Observable<RxBleConnection>> { connection ->
-                    this.connection = connection
-                })
                 clearData()
                 doMeasurement()
             }
@@ -255,10 +233,14 @@ class TemperatureActivity : BaseActivity() {
     }
 
     private fun stopTemperature(){
-        connection?.let { MeasurementUtil.commandStop(it) }
-        connectionDisposable?.dispose()
-        intervalDisposable?.dispose()
-        readTempDisposable?.dispose()
-        temperatureDisposable?.dispose()
+        MeasurementUtil.commandStop(connection)
+        compositeDisposable.clear()
+    }
+
+    override fun onBackPressed() {
+        stopTemperature()
+        compositeDisposable.dispose()
+        exitProcess(0)
+        launchActivityClearAllStack<ScanActivity>()
     }
 }

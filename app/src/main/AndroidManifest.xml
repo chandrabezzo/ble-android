@@ -33,8 +33,7 @@
 
         <service android:name=".services.MeasurementService"
             android:enabled="true"
-            android:exported="false"
-            android:stopWithTask="true"/>
+            android:exported="false" />
 
         <activity
             android:name=".ui.MeasurementSetting"
