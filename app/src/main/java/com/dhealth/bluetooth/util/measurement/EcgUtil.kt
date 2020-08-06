@@ -173,6 +173,22 @@ object EcgUtil {
             Log.e("Error Read Ecg", it.localizedMessage)
         })
     }
+
+    fun commandLogToFlash(connection: Observable<RxBleConnection>): Disposable {
+        val commandsLogToFlash = MeasurementUtil.sendCommand(
+            Commands.createLogToFlashCommand(false)
+        )
+
+        return connection.flatMap {
+            commandsLogToFlash.toObservable().flatMap { data ->
+                it.writeCharacteristic(Maxim.rawDataCharacteristic, data).toObservable()
+            }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread())
+        }.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe({
+            Log.i("Log To Flash", it?.contentToString())
+        }, {
+            Log.e("Error Log To Flash", it.localizedMessage)
+        })
+    }
 }
 
 interface EcgCallback {

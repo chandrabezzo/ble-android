@@ -28,9 +28,9 @@ object Commands {
         sb.append("set_reg ")
         sb.append(str)
         sb.append(' ')
-        sb.append(i.toString())
+        sb.append(i.toString(16))
         sb.append(' ')
-        sb.append(i2.toString())
+        sb.append(i2.toString(16))
         return sb.toString()
     }
 
@@ -39,7 +39,7 @@ object Commands {
         sb.append("get_reg ")
         sb.append(str)
         sb.append(' ')
-        sb.append(i.toString())
+        sb.append(i.toString(16))
         return sb.toString()
     }
 

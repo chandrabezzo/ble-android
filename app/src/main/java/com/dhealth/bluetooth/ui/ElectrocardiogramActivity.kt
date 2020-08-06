@@ -139,6 +139,8 @@ class ElectrocardiogramActivity : BaseActivity() {
                 isPlay = true
                 movingAverage.reset()
                 clearData()
+
+                EcgUtil.commandLogToFlash(connection)
                 doMeasurement(false)
             }
             R.id.nav_stop -> {
